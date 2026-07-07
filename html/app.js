@@ -23,7 +23,8 @@ let state = {
     tab: 'basis',
     search: '',
     stepPage: 0,
-    stepsPerPage: 3
+    stepsPerPage: 3,
+    collapsedSteps: {}
 };
 
 const post = (name, data = {}) => fetch(`https://${resource}/${name}`, {
@@ -143,6 +144,23 @@ function defaultActivity() {
                 },
                 jobs: []
             },
+            drugs: {
+                inputItem: 'coke_leaf',
+                inputAmount: 1,
+                outputItem: 'coke_poeder',
+                outputMin: 1,
+                outputMax: 1,
+                pickRewardItem: 'coke_leaf',
+                pickRewardMin: 1,
+                pickRewardMax: 3,
+                requiredItem: '',
+                requiredAmount: 1,
+                removeRequired: true,
+                duration: 7500,
+                minigame: false,
+                difficulty: 'normal',
+                animation: 'drug_process'
+            },
             police: {
                 chance: 100,
                 text: 'Verdachte illegale activiteit gemeld in de buurt.',
@@ -164,9 +182,14 @@ function builderAllowed(category) {
     return ['drugs_verwerken', 'drugs_verpakken', 'illegale_crafting', 'lab_activiteit', 'custom'].includes(category);
 }
 
+function drugPageAllowed(category) {
+    return ['drugs_plukken', 'drugs_verwerken', 'drugs_verpakken'].includes(category);
+}
+
 function visibleTabsFor(a) {
     const tabs = ['basis', 'stappen', 'items', 'politie', 'instellingen'];
-    if (a && builderAllowed(a.category)) tabs.splice(3, 0, 'bouwer');
+    if (a && drugPageAllowed(a.category)) tabs.splice(3, 0, 'drugs');
+    if (a && builderAllowed(a.category)) tabs.splice(4, 0, 'bouwer');
     if (a && a.category === 'witwassen') tabs.splice(4, 0, 'witwas');
     return tabs;
 }
@@ -229,6 +252,7 @@ function selectedOrDefault() {
     state.selected.settings.wash.route.vehicleSpawn = state.selected.settings.wash.route.vehicleSpawn || clone(defs.settings.wash.route.vehicleSpawn);
     state.selected.settings.wash.jobs = state.selected.settings.wash.jobs || [];
     state.selected.settings.police = state.selected.settings.police || clone(defs.settings.police);
+    state.selected.settings.drugs = state.selected.settings.drugs || clone(defs.settings.drugs);
     state.selected.settings.visual_builder = state.selected.settings.visual_builder || clone(defs.settings.visual_builder);
     state.selected.settings.visual_builder.blocks = state.selected.settings.visual_builder.blocks || [];
     state.selected.required_items = state.selected.required_items || [];
@@ -258,6 +282,7 @@ function selectActivity(id) {
     const found = (state.activities || []).find(a => Number(a.id) === Number(id));
     state.selected = clone(found || defaultActivity());
     state.stepPage = 0;
+    state.collapsedSteps = {};
     render();
 }
 
@@ -432,11 +457,35 @@ function stepCard(s, i) {
     s.coords = s.coords || { x: 0, y: 0, z: 0, h: 0 };
     s.animation = s.animation || { preset: 'none' };
     s.door = s.door || {};
+    const collapsed = state.collapsedSteps && state.collapsedSteps[i] === true;
+    const summary = `${actionLabel(s.action_type || 'collect')} • ${Math.round((s.coords.x || 0) * 100) / 100}, ${Math.round((s.coords.y || 0) * 100) / 100}, ${Math.round((s.coords.z || 0) * 100) / 100}`;
+
+    if (collapsed) {
+        return `
+            <div class="card step-card collapsed">
+                <div class="card-title">
+                    <div>
+                        <h3>#${i + 1} ${esc(s.label || 'Actiepunt')}</h3>
+                        <p class="muted">${esc(summary)}</p>
+                    </div>
+                    <div class="row">
+                        <button class="small" data-toggle-step="${i}">Openen</button>
+                        <button class="danger small" data-remove-step="${i}">Verwijderen</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     return `
         <div class="card step-card">
             <div class="card-title">
-                <h3>#${i + 1} ${esc(s.label || 'Actiepunt')}</h3>
+                <div>
+                    <h3>#${i + 1} ${esc(s.label || 'Actiepunt')}</h3>
+                    <p class="muted">${esc(summary)}</p>
+                </div>
                 <div class="row">
+                    <button class="small" data-toggle-step="${i}">Inklappen</button>
                     <button class="small" data-step-current="${i}">Gebruik huidige locatie</button>
                     <button class="small" data-step-preview="${i}">Preview animatie</button>
                     <button class="danger small" data-remove-step="${i}">Verwijderen</button>
@@ -477,6 +526,135 @@ function stepCard(s, i) {
             </div>
         </div>
     `;
+}
+
+function renderDrugs(a) {
+    const d = a.settings.drugs || {};
+    const isPick = a.category === 'drugs_plukken';
+    const isPackage = a.category === 'drugs_verpakken';
+    const title = isPick ? 'Drugs pluk instellingen' : (isPackage ? 'Verpak instellingen' : 'Verwerk instellingen');
+    const actionName = isPick ? 'Plukken' : (isPackage ? 'Verpakken' : 'Verwerken');
+    const defaultAnim = isPick ? 'drug_pick' : (isPackage ? 'drug_package' : 'drug_process');
+    if (!d.animation) d.animation = defaultAnim;
+
+    if (isPick) {
+        return `
+            <div class="card process-hero">
+                <div>
+                    <h3>${title}</h3>
+                    <p class="muted">Stel hier in wat spelers krijgen bij pluk locaties.</p>
+                </div>
+                <button class="primary" data-action="apply-drugs-settings">Toepassen op klop/actiepunten</button>
+            </div>
+            <div class="process-flow">
+                <div class="flow-box"><strong>Locatie</strong><span>Speler drukt E</span></div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box"><strong>${actionName}</strong><span>Animatie + timer</span></div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box"><strong>Reward</strong><span>${esc(d.pickRewardItem || 'item')}</span></div>
+            </div>
+            <div class="card">
+                <div class="card-title"><h3>Pluk reward</h3></div>
+                <div class="grid three">
+                    <div class="field"><label>Reward item</label><input data-drugs="pickRewardItem" value="${esc(d.pickRewardItem || 'coke_leaf')}"></div>
+                    <div class="field"><label>Min aantal</label><input data-drugs="pickRewardMin" type="number" value="${d.pickRewardMin || 1}"></div>
+                    <div class="field"><label>Max aantal</label><input data-drugs="pickRewardMax" type="number" value="${d.pickRewardMax || 3}"></div>
+                    <div class="field"><label>Required item optioneel</label><input data-drugs="requiredItem" value="${esc(d.requiredItem || '')}" placeholder="bijv. schaar"></div>
+                    <div class="field"><label>Required aantal</label><input data-drugs="requiredAmount" type="number" value="${d.requiredAmount || 1}"></div>
+                    <label class="switch-row"><span>Required verwijderen</span><input data-drugs="removeRequired" type="checkbox" ${d.removeRequired === true ? 'checked' : ''}></label>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title"><h3>Uitvoering</h3></div>
+                <div class="grid three">
+                    <div class="field"><label>Duur ms</label><input data-drugs="duration" type="number" value="${d.duration || 7500}"></div>
+                    <label class="switch-row"><span>Minigame</span><input data-drugs="minigame" type="checkbox" ${d.minigame === true ? 'checked' : ''}></label>
+                    <div class="field"><label>Moeilijkheid</label><select data-drugs="difficulty">${difficultyOptions(d.difficulty || 'normal')}</select></div>
+                    <div class="field"><label>Animatie</label><select data-drugs="animation">${presetOptions(d.animation || 'drug_pick')}</select></div>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="card process-hero">
+            <div>
+                <h3>${title}</h3>
+                <p class="muted">Verwerken en verpakken gebruiken hetzelfde systeem.</p>
+            </div>
+            <button class="primary" data-action="apply-drugs-settings">Toepassen op actiepunten</button>
+        </div>
+        <div class="process-flow">
+            <div class="flow-box"><strong>Input</strong><span>${esc(d.inputItem || 'input_item')}</span></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box"><strong>${actionName}</strong><span>Timer / minigame</span></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box"><strong>Output</strong><span>${esc(d.outputItem || 'output_item')}</span></div>
+        </div>
+        <div class="card">
+            <div class="card-title"><h3>Input & output</h3></div>
+            <div class="grid three">
+                <div class="field"><label>Input item</label><input data-drugs="inputItem" value="${esc(d.inputItem || 'coke_leaf')}"></div>
+                <div class="field"><label>Input aantal</label><input data-drugs="inputAmount" type="number" value="${d.inputAmount || 1}"></div>
+                <div class="field"><label>Output item</label><input data-drugs="outputItem" value="${esc(d.outputItem || (isPackage ? 'coke_bag' : 'coke_poeder'))}"></div>
+                <div class="field"><label>Output min</label><input data-drugs="outputMin" type="number" value="${d.outputMin || 1}"></div>
+                <div class="field"><label>Output max</label><input data-drugs="outputMax" type="number" value="${d.outputMax || 1}"></div>
+                <label class="switch-row"><span>Input verwijderen</span><input data-drugs="removeRequired" type="checkbox" ${d.removeRequired !== false ? 'checked' : ''}></label>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title"><h3>Uitvoering</h3></div>
+            <div class="grid three">
+                <div class="field"><label>Duur ms</label><input data-drugs="duration" type="number" value="${d.duration || 7500}"></div>
+                <label class="switch-row"><span>Minigame</span><input data-drugs="minigame" type="checkbox" ${d.minigame === true ? 'checked' : ''}></label>
+                <div class="field"><label>Moeilijkheid</label><select data-drugs="difficulty">${difficultyOptions(d.difficulty || 'normal')}</select></div>
+                <div class="field"><label>Animatie</label><select data-drugs="animation">${presetOptions(d.animation || defaultAnim)}</select></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title"><h3>Extra opties</h3></div>
+            <p class="muted">Gebruik de tab Visuele bouwer voor extra blokken zoals extra required items, extra rewards, wachttijd, minigame, animatie of politie melding.</p>
+        </div>
+    `;
+}
+
+function applyDrugsSettingsToSteps() {
+    const a = selectedOrDefault();
+    const d = a.settings.drugs || {};
+    const isPick = a.category === 'drugs_plukken';
+    const isPackage = a.category === 'drugs_verpakken';
+    const actionType = isPick ? 'collect' : (isPackage ? 'package' : 'process');
+    const anim = d.animation || (isPick ? 'drug_pick' : (isPackage ? 'drug_package' : 'drug_process'));
+
+    (a.action_points || []).forEach((step, idx) => {
+        step.action_type = actionType;
+        step.duration = Number(d.duration || step.duration || a.duration || 7500);
+        step.minigame = d.minigame === true;
+        step.minigame_difficulty = d.difficulty || a.minigame_difficulty || 'normal';
+        step.animation = { preset: anim };
+        if (isPick) {
+            step.label = step.label || `Pluk locatie ${idx + 1}`;
+            step.required_item = d.requiredItem || '';
+            step.required_amount = Number(d.requiredAmount || 1);
+            step.remove_required = d.removeRequired === true;
+            step.reward = d.pickRewardItem || 'coke_leaf';
+            step.reward_min = Number(d.pickRewardMin || 1);
+            step.reward_max = Number(d.pickRewardMax || d.pickRewardMin || 1);
+            step.reward_type = 'item';
+            step.reward_chance = 100;
+        } else {
+            step.label = step.label || `${isPackage ? 'Verpak' : 'Verwerk'} locatie ${idx + 1}`;
+            step.required_item = d.inputItem || 'coke_leaf';
+            step.required_amount = Number(d.inputAmount || 1);
+            step.remove_required = d.removeRequired !== false;
+            step.reward = d.outputItem || (isPackage ? 'coke_bag' : 'coke_poeder');
+            step.reward_min = Number(d.outputMin || 1);
+            step.reward_max = Number(d.outputMax || d.outputMin || 1);
+            step.reward_type = 'item';
+            step.reward_chance = 100;
+        }
+    });
+    renderPanel();
 }
 
 function renderPolitie(a) {
@@ -685,6 +863,7 @@ function renderPanel() {
         basis: renderBasis,
         stappen: renderStappen,
         items: renderItems,
+        drugs: renderDrugs,
         bouwer: renderBouwer,
         politie: renderPolitie,
         witwas: renderWitwas,
@@ -701,7 +880,17 @@ function renderTabs() {
         const tab = btn.dataset.tab;
         btn.classList.toggle('hidden', !allowed.includes(tab));
         btn.classList.toggle('active', tab === state.tab);
-        if (tab === 'stappen') btn.textContent = a && a.category === 'witwassen' ? 'Klop locaties' : 'Actiepunten';
+        if (tab === 'stappen') {
+            btn.textContent = a && a.category === 'witwassen' ? 'Klop locaties' : 'Actiepunten';
+        }
+        if (tab === 'drugs') {
+            if (a && a.category === 'drugs_plukken') btn.textContent = 'Drugs pluk';
+            else if (a && a.category === 'drugs_verpakken') btn.textContent = 'Verwerken';
+            else btn.textContent = 'Verwerken';
+        }
+        if (tab === 'bouwer') {
+            btn.textContent = a && a.category === 'drugs_verpakken' ? 'Extra bouwer' : 'Visuele bouwer';
+        }
     });
 }
 
@@ -778,27 +967,68 @@ async function useCurrentVehicleSpawn() {
 
 async function addStep() {
     const a = selectedOrDefault();
+    const d = a.settings.drugs || {};
     const res = await post('getCurrentCoords');
-    const defaultLabel = a.category === 'witwassen' ? `Klop locatie ${(a.action_points || []).length + 1}` : `Stap ${(a.action_points || []).length + 1}`;
+    let defaultLabel = `Stap ${(a.action_points || []).length + 1}`;
+    let actionType = 'collect';
+    let anim = 'none';
+    let reward = '';
+    let rewardMin = 1;
+    let rewardMax = 1;
+    let required = '';
+    let requiredAmount = 1;
+    let removeRequired = false;
+
+    if (a.category === 'witwassen') {
+        defaultLabel = `Klop locatie ${(a.action_points || []).length + 1}`;
+        actionType = 'wash_route_stop';
+        anim = 'knock';
+    } else if (a.category === 'drugs_plukken') {
+        defaultLabel = `Pluk locatie ${(a.action_points || []).length + 1}`;
+        actionType = 'collect';
+        anim = d.animation || 'drug_pick';
+        reward = d.pickRewardItem || 'coke_leaf';
+        rewardMin = Number(d.pickRewardMin || 1);
+        rewardMax = Number(d.pickRewardMax || d.pickRewardMin || 3);
+        required = d.requiredItem || '';
+        requiredAmount = Number(d.requiredAmount || 1);
+        removeRequired = d.removeRequired === true;
+    } else if (a.category === 'drugs_verwerken' || a.category === 'drugs_verpakken') {
+        const pack = a.category === 'drugs_verpakken';
+        defaultLabel = `${pack ? 'Verpak' : 'Verwerk'} locatie ${(a.action_points || []).length + 1}`;
+        actionType = pack ? 'package' : 'process';
+        anim = d.animation || (pack ? 'drug_package' : 'drug_process');
+        reward = d.outputItem || (pack ? 'coke_bag' : 'coke_poeder');
+        rewardMin = Number(d.outputMin || 1);
+        rewardMax = Number(d.outputMax || d.outputMin || 1);
+        required = d.inputItem || 'coke_leaf';
+        requiredAmount = Number(d.inputAmount || 1);
+        removeRequired = d.removeRequired !== false;
+    }
+
     const label = await nuiPrompt('Naam van deze locatie:', defaultLabel, 'Locatie toevoegen');
     if (label === null) return;
+    const newIndex = (a.action_points || []).length;
     a.action_points.push({
         label: label || defaultLabel,
         coords: res.ok ? res.coords : { x: 0, y: 0, z: 0, h: 0 },
-        action_type: a.category === 'witwassen' ? 'wash_route_stop' : 'collect',
-        duration: a.duration || 7500,
+        action_type: actionType,
+        duration: Number((a.settings.drugs && a.settings.drugs.duration) || a.duration || 7500),
         progressbar: null,
-        minigame: null,
-        minigame_difficulty: a.minigame_difficulty || 'normal',
-        animation: { preset: 'none' },
-        required_amount: 1,
-        remove_required: false,
-        reward_min: 1,
-        reward_max: 1,
+        minigame: a.category.startsWith('drugs_') ? (d.minigame === true) : null,
+        minigame_difficulty: (d.difficulty || a.minigame_difficulty || 'normal'),
+        animation: { preset: anim },
+        required_item: required,
+        required_amount: requiredAmount,
+        remove_required: removeRequired,
+        reward: reward,
+        reward_min: rewardMin,
+        reward_max: rewardMax,
         reward_chance: 100,
         reward_type: 'item',
         door: { afterAction: 'none', defaultLocked: false, relockDelay: 0 }
     });
+    state.collapsedSteps[newIndex] = false;
     renderPanel();
 }
 
@@ -859,6 +1089,13 @@ function updateByTarget(t) {
         a.settings.wash = a.settings.wash || {};
         const key = t.dataset.wash;
         a.settings.wash[key] = t.type === 'number' ? n(value) : value;
+    }
+    if (t.dataset.drugs) {
+        a.settings.drugs = a.settings.drugs || {};
+        const key = t.dataset.drugs;
+        if (t.type === 'checkbox') a.settings.drugs[key] = t.checked;
+        else if (t.type === 'number') a.settings.drugs[key] = n(value);
+        else a.settings.drugs[key] = value;
     }
     if (t.dataset.washRoute) {
         a.settings.wash = a.settings.wash || {};
@@ -974,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('newActivity').addEventListener('click', () => {
     state.selected = defaultActivity();
     state.stepPage = 0;
+    state.collapsedSteps = {};
     state.tab = 'basis';
     render();
 });
@@ -1018,6 +1256,7 @@ panel.addEventListener('click', async e => {
     if (t.dataset.action === 'step-prev') { state.stepPage = Math.max(0, state.stepPage - 1); return renderPanel(); }
     if (t.dataset.action === 'step-next') { state.stepPage += 1; return renderPanel(); }
     if (t.dataset.action === 'add-wash-job') { const a = selectedOrDefault(); a.settings.wash.jobs = a.settings.wash.jobs || []; a.settings.wash.jobs.push({ job: '', percentage: 60 }); return renderPanel(); }
+    if (t.dataset.action === 'apply-drugs-settings') return applyDrugsSettingsToSteps();
     if (t.dataset.action === 'preview-main-animation') return post('previewAnimation', { animation: selectedOrDefault().animation, duration: 4500 });
     if (t.dataset.builderTemplate) return addBuilderBlock(t.dataset.builderTemplate);
     if (t.dataset.builderRemove != null) { const b = getBuilder(selectedOrDefault()); b.blocks.splice(Number(t.dataset.builderRemove), 1); return renderPanel(); }
@@ -1027,7 +1266,8 @@ panel.addEventListener('click', async e => {
     if (t.dataset.quick) return addQuick(t.dataset.quick, t.dataset.type, t.dataset.name);
     if (t.dataset.removeRequired != null) { selectedOrDefault().required_items.splice(Number(t.dataset.removeRequired), 1); return renderPanel(); }
     if (t.dataset.removeReward != null) { selectedOrDefault().rewards.splice(Number(t.dataset.removeReward), 1); return renderPanel(); }
-    if (t.dataset.removeStep != null) { selectedOrDefault().action_points.splice(Number(t.dataset.removeStep), 1); return renderPanel(); }
+    if (t.dataset.toggleStep != null) { const i = Number(t.dataset.toggleStep); state.collapsedSteps[i] = !state.collapsedSteps[i]; return renderPanel(); }
+    if (t.dataset.removeStep != null) { selectedOrDefault().action_points.splice(Number(t.dataset.removeStep), 1); state.collapsedSteps = {}; return renderPanel(); }
     if (t.dataset.removeWashJob != null) { selectedOrDefault().settings.wash.jobs.splice(Number(t.dataset.removeWashJob), 1); return renderPanel(); }
     if (t.dataset.stepCurrent != null) return setStepCurrent(Number(t.dataset.stepCurrent));
     if (t.dataset.captureDoor != null) return captureDoor(Number(t.dataset.captureDoor));

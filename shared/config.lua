@@ -1,6 +1,6 @@
 Config = {}
 
-Config.Version = '1.1.3'
+Config.Version = '1.1.4'
 
 Config.Debug = false
 

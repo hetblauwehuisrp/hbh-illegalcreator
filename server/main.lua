@@ -553,6 +553,47 @@ lib.callback.register('hbh-illegalcreator:server:startActivity', function(src, i
     return { ok = true, token = token, activity = activity, step = 1, message = _L('activity_started') }
 end)
 
+
+lib.callback.register('hbh-illegalcreator:server:preCheckStep', function(src, activityId, stepIndex, token, payload)
+    local valid, activity, stepOrMessage = validateSession(src, activityId, stepIndex, token)
+    if not valid then
+        return { ok = false, title = activity and activity.name or Config.Notify.AdminTitle, message = stepOrMessage }
+    end
+
+    local step = stepOrMessage
+    local session = Sessions[src]
+    local requirements = mergedRequirements(activity, step)
+    local okReq, reqMessage = HBH.Security.HasRequirements(src, requirements)
+    if not okReq then
+        return { ok = false, title = activity.name, message = reqMessage }
+    end
+
+    local finalStep = isFinalStep(session, activity, stepIndex)
+    if finalStep and not session.washRoute then
+        local okFinalReq, finalReqMessage = HBH.Security.HasRequirements(src, activity.required_items)
+        if not okFinalReq then
+            return { ok = false, title = activity.name, message = finalReqMessage }
+        end
+    end
+
+    local actionType = step.action_type or step.actionType or 'custom'
+    if actionType == 'money_convert' or actionType == 'wash_start' then
+        payload = payload or {}
+        local amount = math.floor(tonumber(payload.amount or 0) or 0)
+        if amount > 0 then
+            local washData = HBH.Security.GetWashSettings(src, activity)
+            if amount < washData.minAmount or amount > washData.maxAmount then
+                return { ok = false, title = activity.name, message = ('Bedrag moet tussen %s en %s liggen.'):format(washData.minAmount, washData.maxAmount) }
+            end
+            if HBH.Security.GetAccountAmount(src, washData.input) < amount then
+                return { ok = false, title = activity.name, message = _L('missing_money', amount, washData.input) }
+            end
+        end
+    end
+
+    return { ok = true, title = activity.name }
+end)
+
 lib.callback.register('hbh-illegalcreator:server:completeStep', function(src, activityId, stepIndex, token, payload)
     if HBH.Security.RateLimit(src, 'completeStep', Config.Security.AntiSpamMs) then return { ok = false, message = 'Rustig aan.' } end
 

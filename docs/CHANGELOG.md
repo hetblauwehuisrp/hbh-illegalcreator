@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.4
+- Actiepunten kunnen nu worden ingeklapt en weer geopend.
+- Drugs plukken heeft een eigen categoriepagina gekregen.
+- Drugs verwerken en verpakken gebruiken nu hetzelfde verwerk-systeem en dezelfde UI-flow.
+- Verwerk/pluk/verpak instellingen kunnen direct op alle actiepunten worden toegepast.
+- Nieuwe actiepunten krijgen automatisch betere defaults per categorie.
+- Server-side pre-check toegevoegd zodat ontbrekende items/geld direct worden gemeld voordat animatie/progressbar start.
+- Meldingen voor ontbrekende items en geld duidelijker gemaakt.
+
 ## 1.1.2
 - Onnodige uitlegteksten uit de NUI weggehaald.
 - Witwassen duidelijk opgesplitst in starten locatie, auto spawn locatie en klop locaties.

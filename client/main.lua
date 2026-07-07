@@ -327,6 +327,13 @@ local function attemptCurrentStep()
         return
     end
 
+    local pre = lib.callback.await('hbh-illegalcreator:server:preCheckStep', false, activity.id, Current.step, Current.token, payload or {})
+    if not pre or not pre.ok then
+        notify(pre and pre.title or activity.name, pre and pre.message or _L('admin_error'), 'error')
+        attempting = false
+        return
+    end
+
     local minigameOk = playMinigame(activity, step)
     if not minigameOk then
         notify(activity.name, _L('step_failed'), 'error')
