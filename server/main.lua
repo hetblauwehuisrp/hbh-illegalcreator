@@ -453,6 +453,14 @@ local function sanitizeAdminActivity(data)
     data.required_items = data.required_items or {}
     data.rewards = data.rewards or {}
     data.settings = data.settings or {}
+    if data.category == 'drugs_verpakken' then
+        data.category = 'drugs_verwerken'
+        data.settings.drugs = data.settings.drugs or {}
+        data.settings.drugs.mode = data.settings.drugs.mode or 'package'
+    elseif data.category == 'drugs_verwerken' then
+        data.settings.drugs = data.settings.drugs or {}
+        data.settings.drugs.mode = data.settings.drugs.mode or 'process'
+    end
 
     if #(data.action_points or {}) > Config.Security.MaxActionPoints then
         return false, ('Maximaal %s actiepunten toegestaan.'):format(Config.Security.MaxActionPoints)
@@ -506,6 +514,7 @@ lib.callback.register('hbh-illegalcreator:server:adminGetData', function(src)
             actionTypes = Config.ActionTypes,
             animationPresets = Config.AnimationPresets,
             quickItems = Config.QuickItems,
+            drugTypes = Config.DrugTypes,
             defaults = Config.Defaults,
             minigame = Config.Minigame,
             witwasRoute = Config.WitwasRoute

@@ -145,9 +145,11 @@ function defaultActivity() {
                 jobs: []
             },
             drugs: {
+                drugType: 'coke',
+                mode: 'process',
                 inputItem: 'coke_leaf',
                 inputAmount: 1,
-                outputItem: 'coke_poeder',
+                outputItem: 'coke_powder',
                 outputMin: 1,
                 outputMax: 1,
                 pickRewardItem: 'coke_leaf',
@@ -178,12 +180,18 @@ function defaultActivity() {
 }
 
 
+function normalizeCategory(category) {
+    return category === 'drugs_verpakken' ? 'drugs_verwerken' : category;
+}
+
 function builderAllowed(category) {
-    return ['drugs_verwerken', 'drugs_verpakken', 'illegale_crafting', 'lab_activiteit', 'custom'].includes(category);
+    category = normalizeCategory(category);
+    return ['drugs_verwerken', 'illegale_crafting', 'lab_activiteit', 'custom'].includes(category);
 }
 
 function drugPageAllowed(category) {
-    return ['drugs_plukken', 'drugs_verwerken', 'drugs_verpakken'].includes(category);
+    category = normalizeCategory(category);
+    return ['drugs_plukken', 'drugs_verwerken'].includes(category);
 }
 
 function visibleTabsFor(a) {
@@ -236,7 +244,8 @@ function builderBlockTitle(block) {
 }
 
 function categoryLabel(value) {
-    return (state.config.categories || []).find(c => c.value === value)?.label || value || 'Custom';
+    const normalized = normalizeCategory(value);
+    return (state.config.categories || []).find(c => c.value === normalized)?.label || normalized || 'Custom';
 }
 
 function actionLabel(value) {
@@ -246,6 +255,11 @@ function actionLabel(value) {
 function selectedOrDefault() {
     if (!state.selected) state.selected = defaultActivity();
     state.selected.settings = state.selected.settings || {};
+    if (state.selected.category === 'drugs_verpakken') {
+        state.selected.category = 'drugs_verwerken';
+        state.selected.settings.drugs = state.selected.settings.drugs || {};
+        state.selected.settings.drugs.mode = state.selected.settings.drugs.mode || 'package';
+    }
     const defs = defaultActivity();
     state.selected.settings.wash = state.selected.settings.wash || clone(defs.settings.wash);
     state.selected.settings.wash.route = state.selected.settings.wash.route || clone(defs.settings.wash.route);
@@ -287,7 +301,8 @@ function selectActivity(id) {
 }
 
 function categoryOptions(value) {
-    return (state.config.categories || []).map(c => `<option value="${esc(c.value)}" ${c.value === value ? 'selected' : ''}>${esc(c.label)}</option>`).join('');
+    const normalized = normalizeCategory(value);
+    return (state.config.categories || []).map(c => `<option value="${esc(c.value)}" ${c.value === normalized ? 'selected' : ''}>${esc(c.label)}</option>`).join('');
 }
 
 function actionOptions(value) {
@@ -528,23 +543,78 @@ function stepCard(s, i) {
     `;
 }
 
+
+function drugTypes() {
+    return state.config.drugTypes || [];
+}
+
+function currentDrugType(a) {
+    const types = drugTypes();
+    const d = (a && a.settings && a.settings.drugs) || {};
+    return types.find(x => x.value === d.drugType) || types[0] || null;
+}
+
+function drugTypeOptions(current) {
+    const types = drugTypes();
+    if (!types.length) return `<option value="coke">Coke</option>`;
+    return types.map(x => `<option value="${esc(x.value)}" ${x.value === current ? 'selected' : ''}>${esc(x.label)}</option>`).join('');
+}
+
+function drugIconHtml(drug) {
+    if (!drug || !drug.icon) return '';
+    return `<img class="drug-icon" src="${esc(drug.icon)}" alt="${esc(drug.label || 'Drug')}">`;
+}
+
+function applyDrugTypeDefaults(a) {
+    if (!a) return;
+    a.settings = a.settings || {};
+    a.settings.drugs = a.settings.drugs || {};
+    const d = a.settings.drugs;
+    const drug = currentDrugType(a);
+    if (!drug) return;
+    const category = normalizeCategory(a.category);
+    if (category === 'drugs_plukken') {
+        d.pickRewardItem = drug.pickItem || d.pickRewardItem || 'coke_leaf';
+        d.animation = d.animation || 'drug_pick';
+    } else if (category === 'drugs_verwerken') {
+        d.mode = d.mode === 'package' ? 'package' : 'process';
+        if (d.mode === 'package') {
+            d.inputItem = drug.packageInput || drug.processOutput || d.inputItem || 'coke_powder';
+            d.outputItem = drug.packageOutput || drug.sellItem || d.outputItem || 'coke_bag';
+            d.animation = d.animation || 'drug_package';
+        } else {
+            d.inputItem = drug.processInput || drug.pickItem || d.inputItem || 'coke_leaf';
+            d.outputItem = drug.processOutput || d.outputItem || 'coke_powder';
+            d.animation = d.animation || 'drug_process';
+        }
+    }
+}
+
 function renderDrugs(a) {
-    const d = a.settings.drugs || {};
-    const isPick = a.category === 'drugs_plukken';
-    const isPackage = a.category === 'drugs_verpakken';
-    const title = isPick ? 'Drugs pluk instellingen' : (isPackage ? 'Verpak instellingen' : 'Verwerk instellingen');
+    a.settings.drugs = a.settings.drugs || {};
+    const d = a.settings.drugs;
+    const category = normalizeCategory(a.category);
+    const isPick = category === 'drugs_plukken';
+    const isPackage = !isPick && d.mode === 'package';
+    const title = isPick ? 'Drugs pluk instellingen' : 'Verwerk / verpak instellingen';
     const actionName = isPick ? 'Plukken' : (isPackage ? 'Verpakken' : 'Verwerken');
     const defaultAnim = isPick ? 'drug_pick' : (isPackage ? 'drug_package' : 'drug_process');
+    if (!d.drugType) d.drugType = 'coke';
+    if (!isPick) d.mode = isPackage ? 'package' : 'process';
     if (!d.animation) d.animation = defaultAnim;
+    const drug = currentDrugType(a);
 
     if (isPick) {
         return `
-            <div class="card process-hero">
-                <div>
-                    <h3>${title}</h3>
-                    <p class="muted">Stel hier in wat spelers krijgen bij pluk locaties.</p>
+            <div class="card process-hero drug-hero">
+                <div class="drug-hero-left">
+                    ${drugIconHtml(drug)}
+                    <div>
+                        <h3>${title}</h3>
+                        <div class="field compact"><label>Drug soort</label><select data-drugs="drugType">${drugTypeOptions(d.drugType)}</select></div>
+                    </div>
                 </div>
-                <button class="primary" data-action="apply-drugs-settings">Toepassen op klop/actiepunten</button>
+                <button class="primary" data-action="apply-drugs-settings">Toepassen op actiepunten</button>
             </div>
             <div class="process-flow">
                 <div class="flow-box"><strong>Locatie</strong><span>Speler drukt E</span></div>
@@ -577,10 +647,16 @@ function renderDrugs(a) {
     }
 
     return `
-        <div class="card process-hero">
-            <div>
-                <h3>${title}</h3>
-                <p class="muted">Verwerken en verpakken gebruiken hetzelfde systeem.</p>
+        <div class="card process-hero drug-hero">
+            <div class="drug-hero-left">
+                ${drugIconHtml(drug)}
+                <div>
+                    <h3>${title}</h3>
+                    <div class="grid two compact-grid">
+                        <div class="field compact"><label>Drug soort</label><select data-drugs="drugType">${drugTypeOptions(d.drugType)}</select></div>
+                        <div class="field compact"><label>Actie</label><select data-drugs="mode"><option value="process" ${!isPackage ? 'selected' : ''}>Verwerken</option><option value="package" ${isPackage ? 'selected' : ''}>Verpakken</option></select></div>
+                    </div>
+                </div>
             </div>
             <button class="primary" data-action="apply-drugs-settings">Toepassen op actiepunten</button>
         </div>
@@ -596,7 +672,7 @@ function renderDrugs(a) {
             <div class="grid three">
                 <div class="field"><label>Input item</label><input data-drugs="inputItem" value="${esc(d.inputItem || 'coke_leaf')}"></div>
                 <div class="field"><label>Input aantal</label><input data-drugs="inputAmount" type="number" value="${d.inputAmount || 1}"></div>
-                <div class="field"><label>Output item</label><input data-drugs="outputItem" value="${esc(d.outputItem || (isPackage ? 'coke_bag' : 'coke_poeder'))}"></div>
+                <div class="field"><label>Output item</label><input data-drugs="outputItem" value="${esc(d.outputItem || (isPackage ? 'coke_bag' : 'coke_powder'))}"></div>
                 <div class="field"><label>Output min</label><input data-drugs="outputMin" type="number" value="${d.outputMin || 1}"></div>
                 <div class="field"><label>Output max</label><input data-drugs="outputMax" type="number" value="${d.outputMax || 1}"></div>
                 <label class="switch-row"><span>Input verwijderen</span><input data-drugs="removeRequired" type="checkbox" ${d.removeRequired !== false ? 'checked' : ''}></label>
@@ -613,16 +689,18 @@ function renderDrugs(a) {
         </div>
         <div class="card">
             <div class="card-title"><h3>Extra opties</h3></div>
-            <p class="muted">Gebruik de tab Visuele bouwer voor extra blokken zoals extra required items, extra rewards, wachttijd, minigame, animatie of politie melding.</p>
+            <p class="muted">Gebruik de tab Visuele bouwer voor extra blokken.</p>
         </div>
     `;
 }
 
 function applyDrugsSettingsToSteps() {
     const a = selectedOrDefault();
+    applyDrugTypeDefaults(a);
     const d = a.settings.drugs || {};
-    const isPick = a.category === 'drugs_plukken';
-    const isPackage = a.category === 'drugs_verpakken';
+    const category = normalizeCategory(a.category);
+    const isPick = category === 'drugs_plukken';
+    const isPackage = !isPick && d.mode === 'package';
     const actionType = isPick ? 'collect' : (isPackage ? 'package' : 'process');
     const anim = d.animation || (isPick ? 'drug_pick' : (isPackage ? 'drug_package' : 'drug_process'));
 
@@ -647,7 +725,7 @@ function applyDrugsSettingsToSteps() {
             step.required_item = d.inputItem || 'coke_leaf';
             step.required_amount = Number(d.inputAmount || 1);
             step.remove_required = d.removeRequired !== false;
-            step.reward = d.outputItem || (isPackage ? 'coke_bag' : 'coke_poeder');
+            step.reward = d.outputItem || (isPackage ? 'coke_bag' : 'coke_powder');
             step.reward_min = Number(d.outputMin || 1);
             step.reward_max = Number(d.outputMax || d.outputMin || 1);
             step.reward_type = 'item';
@@ -884,12 +962,11 @@ function renderTabs() {
             btn.textContent = a && a.category === 'witwassen' ? 'Klop locaties' : 'Actiepunten';
         }
         if (tab === 'drugs') {
-            if (a && a.category === 'drugs_plukken') btn.textContent = 'Drugs pluk';
-            else if (a && a.category === 'drugs_verpakken') btn.textContent = 'Verwerken';
-            else btn.textContent = 'Verwerken';
+            if (a && normalizeCategory(a.category) === 'drugs_plukken') btn.textContent = 'Drugs pluk';
+            else btn.textContent = 'Verwerken / verpakken';
         }
         if (tab === 'bouwer') {
-            btn.textContent = a && a.category === 'drugs_verpakken' ? 'Extra bouwer' : 'Visuele bouwer';
+            btn.textContent = 'Visuele bouwer';
         }
     });
 }
@@ -967,6 +1044,7 @@ async function useCurrentVehicleSpawn() {
 
 async function addStep() {
     const a = selectedOrDefault();
+    applyDrugTypeDefaults(a);
     const d = a.settings.drugs || {};
     const res = await post('getCurrentCoords');
     let defaultLabel = `Stap ${(a.action_points || []).length + 1}`;
@@ -983,7 +1061,7 @@ async function addStep() {
         defaultLabel = `Klop locatie ${(a.action_points || []).length + 1}`;
         actionType = 'wash_route_stop';
         anim = 'knock';
-    } else if (a.category === 'drugs_plukken') {
+    } else if (normalizeCategory(a.category) === 'drugs_plukken') {
         defaultLabel = `Pluk locatie ${(a.action_points || []).length + 1}`;
         actionType = 'collect';
         anim = d.animation || 'drug_pick';
@@ -993,12 +1071,12 @@ async function addStep() {
         required = d.requiredItem || '';
         requiredAmount = Number(d.requiredAmount || 1);
         removeRequired = d.removeRequired === true;
-    } else if (a.category === 'drugs_verwerken' || a.category === 'drugs_verpakken') {
-        const pack = a.category === 'drugs_verpakken';
+    } else if (normalizeCategory(a.category) === 'drugs_verwerken') {
+        const pack = d.mode === 'package';
         defaultLabel = `${pack ? 'Verpak' : 'Verwerk'} locatie ${(a.action_points || []).length + 1}`;
         actionType = pack ? 'package' : 'process';
         anim = d.animation || (pack ? 'drug_package' : 'drug_process');
-        reward = d.outputItem || (pack ? 'coke_bag' : 'coke_poeder');
+        reward = d.outputItem || (pack ? 'coke_bag' : 'coke_powder');
         rewardMin = Number(d.outputMin || 1);
         rewardMax = Number(d.outputMax || d.outputMin || 1);
         required = d.inputItem || 'coke_leaf';
@@ -1015,7 +1093,7 @@ async function addStep() {
         action_type: actionType,
         duration: Number((a.settings.drugs && a.settings.drugs.duration) || a.duration || 7500),
         progressbar: null,
-        minigame: a.category.startsWith('drugs_') ? (d.minigame === true) : null,
+        minigame: normalizeCategory(a.category).startsWith('drugs_') ? (d.minigame === true) : null,
         minigame_difficulty: (d.difficulty || a.minigame_difficulty || 'normal'),
         animation: { preset: anim },
         required_item: required,
@@ -1070,7 +1148,14 @@ function updateByTarget(t) {
         if (['target_radius','max_distance','cooldown','duration','min_police','min_police_grade','police_blip_time'].includes(key)) a[key] = n(value);
         else if (['enabled','blip','marker','progressbar','minigame','alert_police','police_blip'].includes(key)) a[key] = b(value);
         else a[key] = value;
-        if (key === 'category') needsRender = true;
+        if (key === 'category') {
+            if (a.category === 'drugs_verpakken') {
+                a.category = 'drugs_verwerken';
+                a.settings.drugs = a.settings.drugs || {};
+                a.settings.drugs.mode = 'package';
+            }
+            needsRender = true;
+        }
     }
     if (t.dataset.coord) a.coords[t.dataset.coord] = n(value);
     if (t.dataset.animation) a.animation[t.dataset.animation] = value;
@@ -1096,6 +1181,14 @@ function updateByTarget(t) {
         if (t.type === 'checkbox') a.settings.drugs[key] = t.checked;
         else if (t.type === 'number') a.settings.drugs[key] = n(value);
         else a.settings.drugs[key] = value;
+        if (key === 'drugType' || key === 'mode') {
+            if (key === 'mode') {
+                a.settings.drugs.animation = value === 'package' ? 'drug_package' : 'drug_process';
+            }
+            applyDrugTypeDefaults(a);
+            renderPanel();
+            return;
+        }
     }
     if (t.dataset.washRoute) {
         a.settings.wash = a.settings.wash || {};

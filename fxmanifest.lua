@@ -29,6 +29,7 @@ files {
     'html/style.css',
     'html/app.js',
     'html/assets/*',
+    'html/assets/drugs/*',
     'version.txt'
 }
 

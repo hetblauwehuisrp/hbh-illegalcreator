@@ -390,3 +390,30 @@ body.light .builder-block { background: rgba(245,250,255,.75); }
     .process-flow { grid-template-columns: 1fr; }
     .flow-arrow { transform: rotate(90deg); }
 }
+
+
+.drug-hero {
+    align-items: center;
+    gap: 14px;
+}
+
+.drug-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.drug-icon {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+    flex: 0 0 auto;
+    filter: drop-shadow(0 0 12px rgba(46, 160, 255, .25));
+}
+
+.field.compact {
+    margin-top: 8px;
+    min-width: 220px;
+}
+

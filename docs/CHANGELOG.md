@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.8
+- Locale syntax fout opgelost waardoor `_L` niet geladen werd.
+- `saveActivity` en server callbacks gebruiken nu weer correcte Nederlandse meldingen.
+- Drugs verwerken en drugs verpakken samengevoegd naar één categorie: `Drugs verwerken / verpakken`.
+- Binnen de drugs pagina kies je nu zelf of de actie Verwerken of Verpakken is.
+- Oude activiteiten met categorie `drugs_verpakken` worden automatisch naar de nieuwe categorie gemigreerd met modus Verpakken.
+- Git update batch toegevoegd met expliciete branch refs zodat `src refspec main matches more than one` niet meer ontstaat.
+- `.gitattributes` toegevoegd om LF/CRLF waarschuwingen te verminderen.
+
+## 1.1.7
+- ox_inventory installatiemap toegevoegd met een `items.lua` gebaseerd op de aangeleverde items.lua.
+- 7 drugssoorten toegevoegd: coke, wiet, meth, XTC, LSD, heroïne en ketamine.
+- Per drugssoort zijn pluk-, verwerk- en verpak-items toegevoegd.
+- Afbeeldingenmap toegevoegd voor ox_inventory en NUI drug-selectie.
+- Drugs UI uitgebreid met een drug-soort selectie die automatisch de juiste input/output items invult.
+
+
 ## 1.1.5
 - Update systeem blokkeert nu het opstarten wanneer GitHub een nieuwere versie heeft.
 - `updateall` downloadt de update nu automatisch via GitHub en stuurt geen downloadlink meer in de console.
