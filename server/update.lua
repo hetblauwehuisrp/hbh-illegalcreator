@@ -48,8 +48,14 @@ end
 
 local function getCurrentVersion()
     local fileVersion = trim(LoadResourceFile(resourceName, 'version.txt') or '')
-    local metaVersion = GetResourceMetadata(resourceName, 'version', 0)
-    return cleanVersion(Config.Version or metaVersion or fileVersion or '0.0.0')
+    local metaVersion = trim(GetResourceMetadata(resourceName, 'version', 0) or '')
+    local configVersion = trim(Config.Version or '')
+
+    if fileVersion ~= '' then return cleanVersion(fileVersion) end
+    if metaVersion ~= '' then return cleanVersion(metaVersion) end
+    if configVersion ~= '' then return cleanVersion(configVersion) end
+
+    return '0.0.0'
 end
 
 local function printUpdate(current, latest)
@@ -186,6 +192,9 @@ end
 
 local function isAllowedFile(path)
     if not path or path == '' then return false end
+    path = tostring(path):gsub('\\', '/')
+    if path:find('^/') or path:find('^%a:') then return false end
+    if path:find('%.%./', 1, true) or path:find('/%.%.', 1, true) or path == '..' then return false end
     if path:find('^%.git') or path:find('^%.github/') then return false end
     if path:find('%.git/') or path:find('%.github/') then return false end
     if path:find('%.zip$') or path:find('%.rar$') or path:find('%.7z$') then return false end
@@ -214,6 +223,61 @@ local function treeUrl()
     return ('https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1'):format(owner, repo, branch)
 end
 
+local function normalizeRepoPath(path)
+    path = tostring(path or ''):gsub('\\', '/')
+    path = path:gsub('/+', '/')
+    path = path:gsub('^/+', '')
+    return path
+end
+
+local function isSafeRepoPath(path)
+    path = normalizeRepoPath(path)
+    if path == '' then return false end
+    if path:find('%.%./', 1, true) or path:find('/%.%.', 1, true) or path:find('^%.%.$') then return false end
+    if path:find('^/') or path:find('^%a:') then return false end
+    return true
+end
+
+local function pathSeparator()
+    if package and package.config then
+        return package.config:sub(1, 1)
+    end
+    return '/'
+end
+
+local function shellQuote(value)
+    value = tostring(value or '')
+    if pathSeparator() == '\\' then
+        return '"' .. value:gsub('"', '\\"') .. '"'
+    end
+    return "'" .. value:gsub("'", "'\\''") .. "'"
+end
+
+local function ensureDirectoryForFile(path)
+    path = normalizeRepoPath(path)
+    local dir = path:match('^(.+)/[^/]+$')
+    if not dir or dir == '' then return true end
+
+    local root = GetResourcePath(resourceName)
+    if not root or root == '' then return false end
+
+    local sep = pathSeparator()
+    local target = root .. sep .. dir:gsub('/', sep)
+    local command
+
+    if sep == '\\' then
+        command = 'mkdir ' .. shellQuote(target) .. ' >nul 2>nul'
+    else
+        command = 'mkdir -p ' .. shellQuote(target) .. ' >/dev/null 2>&1'
+    end
+
+    local ok = pcall(function()
+        os.execute(command)
+    end)
+
+    return ok == true
+end
+
 local function downloadFiles(files, index, done, failed)
     if index > #files then
         done(failed)
@@ -221,12 +285,22 @@ local function downloadFiles(files, index, done, failed)
     end
 
     local file = files[index]
+    file.path = normalizeRepoPath(file.path)
     local rawUrl = rawBaseUrl() .. urlEncodePath(file.path) .. ('?cache=%s'):format(os.time())
 
     httpGet(rawUrl, { ['User-Agent'] = 'hbh-illegalcreator-updater' }, function(status, body)
         if status == 200 and body ~= nil then
-            local ok = SaveResourceFile(resourceName, file.path, body, #body)
-            if not ok then
+            local dirOk = ensureDirectoryForFile(file.path)
+            local ok = false
+
+            if dirOk then
+                ok = SaveResourceFile(resourceName, file.path, body, #body)
+            end
+
+            if not dirOk then
+                print(('^1[hbh-illegalcreator] Map kon niet worden aangemaakt voor: %s^7'):format(file.path))
+                failed = true
+            elseif not ok then
                 print(('^1[hbh-illegalcreator] Kon bestand niet opslaan: %s^7'):format(file.path))
                 failed = true
             elseif Config.Debug then
@@ -284,8 +358,9 @@ function HBH.Update.Run(src)
 
             local files = {}
             for _, entry in ipairs(decoded.tree) do
-                if entry.type == 'blob' and isAllowedFile(entry.path) then
-                    files[#files + 1] = { path = entry.path }
+                local entryPath = normalizeRepoPath(entry.path)
+                if entry.type == 'blob' and isSafeRepoPath(entryPath) and isAllowedFile(entryPath) then
+                    files[#files + 1] = { path = entryPath }
                 end
             end
 
@@ -303,6 +378,8 @@ function HBH.Update.Run(src)
                     return
                 end
 
+                state.blocked = false
+                state.current = state.latest
                 print(('^2[hbh-illegalcreator] Update afgerond naar versie %s.^7'):format(state.latest))
                 if Config.UpdateChecker.AutoRestartAfterUpdate ~= false then
                     print('^5[hbh-illegalcreator] Resource wordt opnieuw gestart...^7')

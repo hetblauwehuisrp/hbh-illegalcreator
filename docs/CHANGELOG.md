@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.9
+
+- `updateall` maakt nu ontbrekende mappen automatisch aan voordat bestanden worden opgeslagen.
+- Updatefout opgelost waarbij bestanden in nieuwe folders zoals `fotos/drugs`, `html/assets/drugs` en `install/ox_inventory` niet opgeslagen konden worden.
+- Versiecontrole leest nu eerst `version.txt`, zodat oude `Config.Version` waardes geen verkeerde update melding meer geven.
+- Extra padbeveiliging toegevoegd aan de updater tegen absolute paden en `../` paden.
+
+
 ## 1.1.8
 - Locale syntax fout opgelost waardoor `_L` niet geladen werd.
 - `saveActivity` en server callbacks gebruiken nu weer correcte Nederlandse meldingen.
