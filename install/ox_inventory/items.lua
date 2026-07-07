@@ -1439,7 +1439,7 @@ return {
 
 	['coke_leaf'] = {
 		label = 'Coca bladeren',
-		weight = 250,
+		weight = 200,
 		stack = true,
 		close = true,
 		description = 'Coca bladeren voor hbh-illegalcreator.',
@@ -1459,11 +1459,18 @@ return {
 		stack = true,
 		close = true,
 		description = 'Coke zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'coke' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
 	},
 
 	['weed_leaf'] = {
 		label = 'Wiet bladeren',
-		weight = 250,
+		weight = 200,
 		stack = true,
 		close = true,
 		description = 'Wiet bladeren voor hbh-illegalcreator.',
@@ -1483,11 +1490,18 @@ return {
 		stack = true,
 		close = true,
 		description = 'Wiet zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'weed' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
 	},
 
 	['meth_ingredient'] = {
 		label = 'Meth grondstof',
-		weight = 250,
+		weight = 200,
 		stack = true,
 		close = true,
 		description = 'Meth grondstof voor hbh-illegalcreator.',
@@ -1507,11 +1521,18 @@ return {
 		stack = true,
 		close = true,
 		description = 'Meth zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'meth' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
 	},
 
 	['xtc_powder'] = {
 		label = 'MDMA poeder',
-		weight = 250,
+		weight = 200,
 		stack = true,
 		close = true,
 		description = 'MDMA poeder voor hbh-illegalcreator.',
@@ -1531,11 +1552,18 @@ return {
 		stack = true,
 		close = true,
 		description = 'XTC zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'xtc' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
 	},
 
 	['lsd_liquid'] = {
 		label = 'LSD vloeistof',
-		weight = 250,
+		weight = 200,
 		stack = true,
 		close = true,
 		description = 'LSD vloeistof voor hbh-illegalcreator.',
@@ -1555,11 +1583,18 @@ return {
 		stack = true,
 		close = true,
 		description = 'LSD zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'lsd' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
 	},
 
 	['heroin_poppy'] = {
 		label = 'Papaver',
-		weight = 250,
+		weight = 200,
 		stack = true,
 		close = true,
 		description = 'Papaver voor hbh-illegalcreator.',
@@ -1579,11 +1614,18 @@ return {
 		stack = true,
 		close = true,
 		description = 'Heroïne zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'heroin' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
 	},
 
 	['ketamine_liquid'] = {
 		label = 'Ketamine vloeistof',
-		weight = 250,
+		weight = 200,
 		stack = true,
 		close = true,
 		description = 'Ketamine vloeistof voor hbh-illegalcreator.',
@@ -1603,6 +1645,168 @@ return {
 		stack = true,
 		close = true,
 		description = 'Ketamine zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'ketamine' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
+	},
+
+	['crack_rock'] = {
+		label = 'Ruwe crack',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'Ruwe crack voor hbh-illegalcreator.',
+	},
+
+	['crack_chunk'] = {
+		label = 'Crack brokjes',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'Crack brokjes voor hbh-illegalcreator.',
+	},
+
+	['crack_bag'] = {
+		label = 'Crack zakje',
+		weight = 120,
+		stack = true,
+		close = true,
+		description = 'Crack zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'crack' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
+	},
+
+	['opium_poppy'] = {
+		label = 'Opium papaver',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'Opium papaver voor hbh-illegalcreator.',
+	},
+
+	['opium_paste'] = {
+		label = 'Opium pasta',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'Opium pasta voor hbh-illegalcreator.',
+	},
+
+	['opium_bag'] = {
+		label = 'Opium zakje',
+		weight = 120,
+		stack = true,
+		close = true,
+		description = 'Opium zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'opium' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
+	},
+
+	['ghb_chemical'] = {
+		label = 'GHB grondstof',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'GHB grondstof voor hbh-illegalcreator.',
+	},
+
+	['ghb_liquid'] = {
+		label = 'GHB vloeistof',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'GHB vloeistof voor hbh-illegalcreator.',
+	},
+
+	['ghb_bottle'] = {
+		label = 'GHB flesje',
+		weight = 120,
+		stack = true,
+		close = true,
+		description = 'GHB flesje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'ghb' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
+	},
+
+	['speed_paste'] = {
+		label = 'Speed pasta',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'Speed pasta voor hbh-illegalcreator.',
+	},
+
+	['speed_powder'] = {
+		label = 'Speed poeder',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'Speed poeder voor hbh-illegalcreator.',
+	},
+
+	['speed_bag'] = {
+		label = 'Speed zakje',
+		weight = 120,
+		stack = true,
+		close = true,
+		description = 'Speed zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'speed' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
+	},
+
+	['paddo_spore'] = {
+		label = 'Paddo sporen',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'Paddo sporen voor hbh-illegalcreator.',
+	},
+
+	['paddo_dried'] = {
+		label = 'Gedroogde paddo',
+		weight = 200,
+		stack = true,
+		close = true,
+		description = 'Gedroogde paddo voor hbh-illegalcreator.',
+	},
+
+	['paddo_bag'] = {
+		label = 'Paddo zakje',
+		weight = 120,
+		stack = true,
+		close = true,
+		description = 'Paddo zakje voor hbh-illegalcreator.',
+		consume = 1,
+		client = {
+			event = 'hbh-illegalcreator:client:useDrug',
+			args = { drug = 'paddo' },
+			usetime = 3000,
+			anim = { dict = 'mp_player_inteat@burger', clip = 'mp_player_int_eat_burger' },
+		},
 	},
 
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0
+
+- Update systeem verder versterkt: updateall kan uit via config, automatisch downloaden kan uit via config en bestanden worden nu ook via directe filesystem fallback opgeslagen als `SaveResourceFile` faalt.
+- Update systeem blokkeert `.git`, `.github`, absolute paden en `../` paden strenger.
+- Alle verpakte drugs-items zijn nu bruikbaar via ox_inventory en triggeren een client-side effect.
+- Drugs iconen vernieuwd naar een duidelijkere inventory-stijl met transparante PNG's.
+- 5 extra drugssoorten toegevoegd: crack, opium, GHB, speed en paddo's.
+- Config, quick items, NUI drug selectie en ox_inventory installatiemap bijgewerkt naar 12 drugssoorten.
+
 ## 1.1.9
 
 - `updateall` maakt nu ontbrekende mappen automatisch aan voordat bestanden worden opgeslagen.

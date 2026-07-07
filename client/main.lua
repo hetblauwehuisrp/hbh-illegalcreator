@@ -34,6 +34,72 @@ local function notify(title, message, nType, duration)
     TriggerEvent('okokNotify:Alert', title or Config.Notify.AdminTitle, message or '', duration or Config.Notify.Duration, nType or 'info', Config.Notify.Sound)
 end
 
+
+local function normalizeDrugUseName(value)
+    local useConfig = Config.DrugUse or {}
+    local drugs = useConfig.Drugs or {}
+    local drug = tostring(value or '')
+    if drugs[drug] then return drug end
+
+    for _, entry in ipairs(Config.DrugTypes or {}) do
+        if entry.value == drug or entry.sellItem == drug or entry.packageOutput == drug then
+            return entry.value
+        end
+    end
+
+    return drug
+end
+
+local function getDrugUseConfig(drug)
+    local useConfig = Config.DrugUse or {}
+    local drugs = useConfig.Drugs or {}
+    return drugs[drug] or { label = 'Drugs', message = 'Je voelt het effect.', screenEffect = 'DrugsMichaelAliensFight' }
+end
+
+RegisterNetEvent('hbh-illegalcreator:client:useDrug', function(data)
+    if Config.DrugUse and Config.DrugUse.Enabled == false then return end
+
+    local drug = nil
+    if type(data) == 'table' then
+        drug = data.drug or data.name or data.item
+    elseif type(data) == 'string' then
+        drug = data
+    end
+
+    drug = normalizeDrugUseName(drug or 'unknown')
+    local cfg = getDrugUseConfig(drug)
+    local duration = tonumber((Config.DrugUse and Config.DrugUse.Duration) or 25000) or 25000
+    local effectTime = tonumber((Config.DrugUse and Config.DrugUse.ScreenEffectTime) or duration) or duration
+    local ped = PlayerPedId()
+
+    notify(cfg.label or 'Drugs', cfg.message or 'Je voelt het effect.', 'info', 3500)
+
+    if cfg.screenEffect and cfg.screenEffect ~= '' then
+        StartScreenEffect(cfg.screenEffect, 0, true)
+        SetTimeout(effectTime, function()
+            StopScreenEffect(cfg.screenEffect)
+        end)
+    end
+
+    local speed = tonumber(cfg.speedMultiplier or (Config.DrugUse and Config.DrugUse.SpeedMultiplier) or 1.0) or 1.0
+    if speed and speed > 1.0 then
+        SetRunSprintMultiplierForPlayer(PlayerId(), math.min(speed, 1.49))
+        SetTimeout(duration, function()
+            SetRunSprintMultiplierForPlayer(PlayerId(), 1.0)
+        end)
+    end
+
+    local armor = tonumber(cfg.armor or (Config.DrugUse and Config.DrugUse.ArmorGain) or 0) or 0
+    if armor > 0 then
+        SetPedArmour(ped, math.min(100, GetPedArmour(ped) + armor))
+    end
+
+    local health = tonumber(cfg.health or (Config.DrugUse and Config.DrugUse.HealthGain) or 0) or 0
+    if health > 0 then
+        SetEntityHealth(ped, math.min(GetEntityMaxHealth(ped), GetEntityHealth(ped) + health))
+    end
+end)
+
 local function toVec3(coords)
     coords = coords or {}
     return vector3(coords.x + 0.0, coords.y + 0.0, coords.z + 0.0)

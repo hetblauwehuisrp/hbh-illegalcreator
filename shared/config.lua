@@ -1,6 +1,6 @@
 Config = {}
 
-Config.Version = '1.1.9'
+Config.Version = '1.2.0'
 
 Config.Debug = false
 
@@ -8,8 +8,14 @@ Config.Command = 'illegalcreator'
 
 
 Config.UpdateChecker = {
+    -- Zet Enabled op false als je het update systeem helemaal uit wilt zetten.
     Enabled = true,
+    -- Zet RequireLatest op false als de resource ook mag starten terwijl er een update klaarstaat.
     RequireLatest = true,
+    -- Zet AllowCommand op false als je updateall wilt uitschakelen.
+    AllowCommand = true,
+    -- Zet AutoDownload op false als updateall niet automatisch bestanden mag downloaden.
+    AutoDownload = true,
     AutoRestartAfterUpdate = true,
     Github = 'https://github.com/hetblauwehuisrp/hbh-illegalcreator',
     Owner = 'hetblauwehuisrp',
@@ -20,7 +26,11 @@ Config.UpdateChecker = {
     CheckDelay = 1000,
     AllowedExtensions = {
         '.lua', '.html', '.css', '.js', '.json', '.sql', '.md', '.txt',
-        '.png', '.jpg', '.jpeg', '.webp', '.svg'
+        '.png', '.jpg', '.jpeg', '.webp', '.svg', '.cmd', '.bat'
+    },
+    SkipPaths = {
+        ['.git'] = true,
+        ['.github'] = true
     }
 }
 
@@ -183,8 +193,8 @@ Config.QuickItems = {
     { type = 'item', name = 'lockpick', label = 'Lockpick' },
     { type = 'item', name = 'thermiet', label = 'Thermiet' },
     { type = 'item', name = 'hacking_device', label = 'Hacking device' },
-    { type = 'item', name = 'coke_leaf', label = 'Drugs item' },
     { type = 'item', name = 'custom', label = 'Custom' },
+    { type = 'item', name = 'coke_leaf', label = 'Coca bladeren' },
     { type = 'item', name = 'coke_powder', label = 'Coke poeder' },
     { type = 'item', name = 'coke_bag', label = 'Coke zakje' },
     { type = 'item', name = 'weed_leaf', label = 'Wiet bladeren' },
@@ -205,6 +215,21 @@ Config.QuickItems = {
     { type = 'item', name = 'ketamine_liquid', label = 'Ketamine vloeistof' },
     { type = 'item', name = 'ketamine_crystal', label = 'Ketamine kristal' },
     { type = 'item', name = 'ketamine_bag', label = 'Ketamine zakje' },
+    { type = 'item', name = 'crack_rock', label = 'Ruwe crack' },
+    { type = 'item', name = 'crack_chunk', label = 'Crack brokjes' },
+    { type = 'item', name = 'crack_bag', label = 'Crack zakje' },
+    { type = 'item', name = 'opium_poppy', label = 'Opium papaver' },
+    { type = 'item', name = 'opium_paste', label = 'Opium pasta' },
+    { type = 'item', name = 'opium_bag', label = 'Opium zakje' },
+    { type = 'item', name = 'ghb_chemical', label = 'GHB grondstof' },
+    { type = 'item', name = 'ghb_liquid', label = 'GHB vloeistof' },
+    { type = 'item', name = 'ghb_bottle', label = 'GHB flesje' },
+    { type = 'item', name = 'speed_paste', label = 'Speed pasta' },
+    { type = 'item', name = 'speed_powder', label = 'Speed poeder' },
+    { type = 'item', name = 'speed_bag', label = 'Speed zakje' },
+    { type = 'item', name = 'paddo_spore', label = 'Paddo sporen' },
+    { type = 'item', name = 'paddo_dried', label = 'Gedroogde paddo' },
+    { type = 'item', name = 'paddo_bag', label = 'Paddo zakje' },
 }
 
 Config.DrugTypes = {
@@ -215,6 +240,34 @@ Config.DrugTypes = {
     { value = 'lsd', label = 'LSD', icon = 'assets/drugs/lsd_bag.png', pickItem = 'lsd_liquid', processInput = 'lsd_liquid', processOutput = 'lsd_sheet', packageInput = 'lsd_sheet', packageOutput = 'lsd_bag', sellItem = 'lsd_bag', priceMin = 700, priceMax = 1300 },
     { value = 'heroin', label = 'Heroïne', icon = 'assets/drugs/heroin_bag.png', pickItem = 'heroin_poppy', processInput = 'heroin_poppy', processOutput = 'heroin_powder', packageInput = 'heroin_powder', packageOutput = 'heroin_bag', sellItem = 'heroin_bag', priceMin = 900, priceMax = 1700 },
     { value = 'ketamine', label = 'Ketamine', icon = 'assets/drugs/ketamine_bag.png', pickItem = 'ketamine_liquid', processInput = 'ketamine_liquid', processOutput = 'ketamine_crystal', packageInput = 'ketamine_crystal', packageOutput = 'ketamine_bag', sellItem = 'ketamine_bag', priceMin = 750, priceMax = 1350 },
+    { value = 'crack', label = 'Crack', icon = 'assets/drugs/crack_bag.png', pickItem = 'crack_rock', processInput = 'crack_rock', processOutput = 'crack_chunk', packageInput = 'crack_chunk', packageOutput = 'crack_bag', sellItem = 'crack_bag', priceMin = 700, priceMax = 1400 },
+    { value = 'opium', label = 'Opium', icon = 'assets/drugs/opium_bag.png', pickItem = 'opium_poppy', processInput = 'opium_poppy', processOutput = 'opium_paste', packageInput = 'opium_paste', packageOutput = 'opium_bag', sellItem = 'opium_bag', priceMin = 600, priceMax = 1200 },
+    { value = 'ghb', label = 'GHB', icon = 'assets/drugs/ghb_bottle.png', pickItem = 'ghb_chemical', processInput = 'ghb_chemical', processOutput = 'ghb_liquid', packageInput = 'ghb_liquid', packageOutput = 'ghb_bottle', sellItem = 'ghb_bottle', priceMin = 450, priceMax = 950 },
+    { value = 'speed', label = 'Speed', icon = 'assets/drugs/speed_bag.png', pickItem = 'speed_paste', processInput = 'speed_paste', processOutput = 'speed_powder', packageInput = 'speed_powder', packageOutput = 'speed_bag', sellItem = 'speed_bag', priceMin = 500, priceMax = 1100 },
+    { value = 'paddo', label = 'Paddos', icon = 'assets/drugs/paddo_bag.png', pickItem = 'paddo_spore', processInput = 'paddo_spore', processOutput = 'paddo_dried', packageInput = 'paddo_dried', packageOutput = 'paddo_bag', sellItem = 'paddo_bag', priceMin = 400, priceMax = 900 },
+}
+
+Config.DrugUse = {
+    Enabled = true,
+    Duration = 25000,
+    ArmorGain = 0,
+    HealthGain = 0,
+    ScreenEffectTime = 25000,
+    SpeedMultiplier = 1.0,
+    Drugs = {
+        coke = { label = 'Coke', screenEffect = 'FocusBoost', message = 'Je voelt je opgejaagd.' },
+        weed = { label = 'Wiet', screenEffect = 'DrugsMichaelAliensFight', message = 'Je wordt rustiger.' },
+        meth = { label = 'Meth', screenEffect = 'RaceTurbo', message = 'Je voelt een flinke rush.' },
+        xtc = { label = 'XTC', screenEffect = 'DMT_flight', message = 'Alles wordt intenser.' },
+        lsd = { label = 'LSD', screenEffect = 'DrugsTrevorClownsFight', message = 'Je zicht begint te vervormen.' },
+        heroin = { label = 'Heroïne', screenEffect = 'DrugsDrivingOut', message = 'Je voelt je zwaar worden.' },
+        ketamine = { label = 'Ketamine', screenEffect = 'DMT_flight_intro', message = 'Je voelt je licht in je hoofd.' },
+        crack = { label = 'Crack', screenEffect = 'RaceTurbo', message = 'Je krijgt een korte rush.' },
+        opium = { label = 'Opium', screenEffect = 'DrugsDrivingOut', message = 'Je wordt langzaam en zwaar.' },
+        ghb = { label = 'GHB', screenEffect = 'DrugsMichaelAliensFight', message = 'Je voelt je duizelig.' },
+        speed = { label = 'Speed', screenEffect = 'RaceTurbo', message = 'Je voelt extra energie.' },
+        paddo = { label = 'Paddos', screenEffect = 'DrugsTrevorClownsFight', message = 'De wereld ziet er anders uit.' },
+    }
 }
 
 

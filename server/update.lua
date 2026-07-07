@@ -197,6 +197,17 @@ local function isAllowedFile(path)
     if path:find('%.%./', 1, true) or path:find('/%.%.', 1, true) or path == '..' then return false end
     if path:find('^%.git') or path:find('^%.github/') then return false end
     if path:find('%.git/') or path:find('%.github/') then return false end
+
+    local skip = Config.UpdateChecker.SkipPaths or {}
+    for skipPath, enabled in pairs(skip) do
+        if enabled == true then
+            skipPath = tostring(skipPath or ''):gsub('\\', '/')
+            if skipPath ~= '' and (path == skipPath or path:find('^' .. skipPath:gsub('([^%w])', '%%%1') .. '/')) then
+                return false
+            end
+        end
+    end
+
     if path:find('%.zip$') or path:find('%.rar$') or path:find('%.7z$') then return false end
 
     local allowed = Config.UpdateChecker.AllowedExtensions or {}
@@ -263,19 +274,47 @@ local function ensureDirectoryForFile(path)
 
     local sep = pathSeparator()
     local target = root .. sep .. dir:gsub('/', sep)
-    local command
+    local commands
 
     if sep == '\\' then
-        command = 'mkdir ' .. shellQuote(target) .. ' >nul 2>nul'
+        commands = {
+            'mkdir ' .. shellQuote(target) .. ' >nul 2>nul',
+            'powershell -NoProfile -ExecutionPolicy Bypass -Command "New-Item -ItemType Directory -Force -Path ' .. target:gsub('"', '\"') .. ' | Out-Null"'
+        }
     else
-        command = 'mkdir -p ' .. shellQuote(target) .. ' >/dev/null 2>&1'
+        commands = {
+            'mkdir -p ' .. shellQuote(target) .. ' >/dev/null 2>&1'
+        }
     end
 
-    local ok = pcall(function()
-        os.execute(command)
-    end)
+    for _, command in ipairs(commands) do
+        pcall(function() os.execute(command) end)
+    end
 
-    return ok == true
+    -- Controleer niet hard op bestaan; sommige hosts geven geen betrouwbare returncode terug.
+    return true
+end
+
+local function saveDownloadedFile(path, body)
+    path = normalizeRepoPath(path)
+    if not isSafeRepoPath(path) then return false, 'unsafe_path' end
+    if not ensureDirectoryForFile(path) then return false, 'mkdir_failed' end
+
+    local ok = SaveResourceFile(resourceName, path, body, #body)
+    if ok then return true end
+
+    -- Fallback voor hosts waar SaveResourceFile moeilijk doet met nieuwe mappen/binaire bestanden.
+    local resourcePath = GetResourcePath(resourceName)
+    if not resourcePath or resourcePath == '' then return false, 'no_resource_path' end
+
+    local sep = pathSeparator()
+    local fullPath = resourcePath .. sep .. path:gsub('/', sep)
+    local file, err = io.open(fullPath, 'wb')
+    if not file then return false, err or 'io_open_failed' end
+
+    file:write(body)
+    file:close()
+    return true
 end
 
 local function downloadFiles(files, index, done, failed)
@@ -290,18 +329,10 @@ local function downloadFiles(files, index, done, failed)
 
     httpGet(rawUrl, { ['User-Agent'] = 'hbh-illegalcreator-updater' }, function(status, body)
         if status == 200 and body ~= nil then
-            local dirOk = ensureDirectoryForFile(file.path)
-            local ok = false
+            local ok, saveErr = saveDownloadedFile(file.path, body)
 
-            if dirOk then
-                ok = SaveResourceFile(resourceName, file.path, body, #body)
-            end
-
-            if not dirOk then
-                print(('^1[hbh-illegalcreator] Map kon niet worden aangemaakt voor: %s^7'):format(file.path))
-                failed = true
-            elseif not ok then
-                print(('^1[hbh-illegalcreator] Kon bestand niet opslaan: %s^7'):format(file.path))
+            if not ok then
+                print(('^1[hbh-illegalcreator] Kon bestand niet opslaan: %s (%s)^7'):format(file.path, tostring(saveErr or 'onbekend')))
                 failed = true
             elseif Config.Debug then
                 print(('^2[hbh-illegalcreator] Geüpdatet: %s^7'):format(file.path))
@@ -318,6 +349,19 @@ local function downloadFiles(files, index, done, failed)
 end
 
 function HBH.Update.Run(src)
+    if not Config.UpdateChecker or Config.UpdateChecker.Enabled == false then
+        print('^3[hbh-illegalcreator] Update systeem staat uit in Config.UpdateChecker.Enabled.^7')
+        return
+    end
+    if Config.UpdateChecker.AllowCommand == false then
+        print('^3[hbh-illegalcreator] updateall staat uit in Config.UpdateChecker.AllowCommand.^7')
+        return
+    end
+    if Config.UpdateChecker.AutoDownload == false then
+        print('^3[hbh-illegalcreator] Automatisch downloaden staat uit in Config.UpdateChecker.AutoDownload.^7')
+        return
+    end
+
     if state.updating then
         print('^3[hbh-illegalcreator] Update is al bezig.^7')
         return

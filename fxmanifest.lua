@@ -2,6 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 author 'HetBlauweHuisRP'
+version '1.2.0'
 
 shared_scripts {
     '@ox_lib/init.lua',
@@ -30,6 +31,7 @@ files {
     'html/app.js',
     'html/assets/*',
     'html/assets/drugs/*',
+    'fotos/drugs/*',
     'version.txt'
 }
 

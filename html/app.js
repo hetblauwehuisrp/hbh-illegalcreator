@@ -212,7 +212,7 @@ function builderTemplates() {
     return [
         { type: 'required_item', label: 'Benodigd item', icon: '📦', defaults: { name: 'coke_leaf', amount: 1, remove: false } },
         { type: 'remove_item', label: 'Item verwijderen', icon: '➖', defaults: { name: 'coke_leaf', amount: 1, remove: true } },
-        { type: 'reward_item', label: 'Reward item', icon: '➕', defaults: { name: 'coke', min: 1, max: 1, chance: 100, guaranteed: true } },
+        { type: 'reward_item', label: 'Reward item', icon: '➕', defaults: { name: 'coke_bag', min: 1, max: 1, chance: 100, guaranteed: true } },
         { type: 'reward_money', label: 'Geld reward', icon: '💶', defaults: { account: 'black_money', min: 100, max: 250, chance: 100, guaranteed: true } },
         { type: 'progress', label: 'Wachttijd', icon: '⏱', defaults: { duration: 7500, label: 'Verwerken' } },
         { type: 'minigame', label: 'Minigame', icon: '🎮', defaults: { enabled: false, difficulty: 'normal' } },
