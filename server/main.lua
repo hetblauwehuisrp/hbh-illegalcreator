@@ -506,6 +506,7 @@ lib.callback.register('hbh-illegalcreator:server:adminGetData', function(src)
             actionTypes = Config.ActionTypes,
             animationPresets = Config.AnimationPresets,
             quickItems = Config.QuickItems,
+            drugTypes = Config.DrugTypes,
             defaults = Config.Defaults,
             minigame = Config.Minigame,
             witwasRoute = Config.WitwasRoute

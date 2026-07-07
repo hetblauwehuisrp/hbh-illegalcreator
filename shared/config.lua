@@ -1,6 +1,6 @@
 Config = {}
 
-Config.Version = '1.1.5'
+Config.Version = '1.1.7'
 
 Config.Debug = false
 
@@ -185,8 +185,39 @@ Config.QuickItems = {
     { type = 'item', name = 'thermiet', label = 'Thermiet' },
     { type = 'item', name = 'hacking_device', label = 'Hacking device' },
     { type = 'item', name = 'coke_leaf', label = 'Drugs item' },
-    { type = 'item', name = 'custom', label = 'Custom' }
+    { type = 'item', name = 'custom', label = 'Custom' },
+    { type = 'item', name = 'coke_powder', label = 'Coke poeder' },
+    { type = 'item', name = 'coke_bag', label = 'Coke zakje' },
+    { type = 'item', name = 'weed_leaf', label = 'Wiet bladeren' },
+    { type = 'item', name = 'weed_dried', label = 'Gedroogde wiet' },
+    { type = 'item', name = 'weed_bag', label = 'Wiet zakje' },
+    { type = 'item', name = 'meth_ingredient', label = 'Meth grondstof' },
+    { type = 'item', name = 'meth_crystal', label = 'Meth kristal' },
+    { type = 'item', name = 'meth_bag', label = 'Meth zakje' },
+    { type = 'item', name = 'xtc_powder', label = 'MDMA poeder' },
+    { type = 'item', name = 'xtc_pill', label = 'XTC pillen' },
+    { type = 'item', name = 'xtc_bag', label = 'XTC zakje' },
+    { type = 'item', name = 'lsd_liquid', label = 'LSD vloeistof' },
+    { type = 'item', name = 'lsd_sheet', label = 'LSD zegels' },
+    { type = 'item', name = 'lsd_bag', label = 'LSD zakje' },
+    { type = 'item', name = 'heroin_poppy', label = 'Papaver' },
+    { type = 'item', name = 'heroin_powder', label = 'Heroïne poeder' },
+    { type = 'item', name = 'heroin_bag', label = 'Heroïne zakje' },
+    { type = 'item', name = 'ketamine_liquid', label = 'Ketamine vloeistof' },
+    { type = 'item', name = 'ketamine_crystal', label = 'Ketamine kristal' },
+    { type = 'item', name = 'ketamine_bag', label = 'Ketamine zakje' },
 }
+
+Config.DrugTypes = {
+    { value = 'coke', label = 'Coke', icon = 'assets/drugs/coke_bag.png', pickItem = 'coke_leaf', processInput = 'coke_leaf', processOutput = 'coke_powder', packageInput = 'coke_powder', packageOutput = 'coke_bag', sellItem = 'coke_bag', priceMin = 650, priceMax = 1250 },
+    { value = 'weed', label = 'Wiet', icon = 'assets/drugs/weed_bag.png', pickItem = 'weed_leaf', processInput = 'weed_leaf', processOutput = 'weed_dried', packageInput = 'weed_dried', packageOutput = 'weed_bag', sellItem = 'weed_bag', priceMin = 250, priceMax = 650 },
+    { value = 'meth', label = 'Meth', icon = 'assets/drugs/meth_bag.png', pickItem = 'meth_ingredient', processInput = 'meth_ingredient', processOutput = 'meth_crystal', packageInput = 'meth_crystal', packageOutput = 'meth_bag', sellItem = 'meth_bag', priceMin = 850, priceMax = 1500 },
+    { value = 'xtc', label = 'XTC', icon = 'assets/drugs/xtc_bag.png', pickItem = 'xtc_powder', processInput = 'xtc_powder', processOutput = 'xtc_pill', packageInput = 'xtc_pill', packageOutput = 'xtc_bag', sellItem = 'xtc_bag', priceMin = 550, priceMax = 1050 },
+    { value = 'lsd', label = 'LSD', icon = 'assets/drugs/lsd_bag.png', pickItem = 'lsd_liquid', processInput = 'lsd_liquid', processOutput = 'lsd_sheet', packageInput = 'lsd_sheet', packageOutput = 'lsd_bag', sellItem = 'lsd_bag', priceMin = 700, priceMax = 1300 },
+    { value = 'heroin', label = 'Heroïne', icon = 'assets/drugs/heroin_bag.png', pickItem = 'heroin_poppy', processInput = 'heroin_poppy', processOutput = 'heroin_powder', packageInput = 'heroin_powder', packageOutput = 'heroin_bag', sellItem = 'heroin_bag', priceMin = 900, priceMax = 1700 },
+    { value = 'ketamine', label = 'Ketamine', icon = 'assets/drugs/ketamine_bag.png', pickItem = 'ketamine_liquid', processInput = 'ketamine_liquid', processOutput = 'ketamine_crystal', packageInput = 'ketamine_crystal', packageOutput = 'ketamine_bag', sellItem = 'ketamine_bag', priceMin = 750, priceMax = 1350 },
+}
+
 
 Config.AnimationPresets = {
     none = {

@@ -145,9 +145,10 @@ function defaultActivity() {
                 jobs: []
             },
             drugs: {
+                drugType: 'coke',
                 inputItem: 'coke_leaf',
                 inputAmount: 1,
-                outputItem: 'coke_poeder',
+                outputItem: 'coke_powder',
                 outputMin: 1,
                 outputMax: 1,
                 pickRewardItem: 'coke_leaf',
@@ -528,23 +529,72 @@ function stepCard(s, i) {
     `;
 }
 
+
+function drugTypes() {
+    return state.config.drugTypes || [];
+}
+
+function currentDrugType(a) {
+    const types = drugTypes();
+    const d = (a && a.settings && a.settings.drugs) || {};
+    return types.find(x => x.value === d.drugType) || types[0] || null;
+}
+
+function drugTypeOptions(current) {
+    const types = drugTypes();
+    if (!types.length) return `<option value="coke">Coke</option>`;
+    return types.map(x => `<option value="${esc(x.value)}" ${x.value === current ? 'selected' : ''}>${esc(x.label)}</option>`).join('');
+}
+
+function drugIconHtml(drug) {
+    if (!drug || !drug.icon) return '';
+    return `<img class="drug-icon" src="${esc(drug.icon)}" alt="${esc(drug.label || 'Drug')}">`;
+}
+
+function applyDrugTypeDefaults(a) {
+    if (!a) return;
+    a.settings = a.settings || {};
+    a.settings.drugs = a.settings.drugs || {};
+    const d = a.settings.drugs;
+    const drug = currentDrugType(a);
+    if (!drug) return;
+    if (a.category === 'drugs_plukken') {
+        d.pickRewardItem = drug.pickItem || d.pickRewardItem || 'coke_leaf';
+        d.animation = d.animation || 'drug_pick';
+    } else if (a.category === 'drugs_verpakken') {
+        d.inputItem = drug.packageInput || drug.processOutput || d.inputItem || 'coke_powder';
+        d.outputItem = drug.packageOutput || drug.sellItem || d.outputItem || 'coke_bag';
+        d.animation = d.animation || 'drug_package';
+    } else if (a.category === 'drugs_verwerken') {
+        d.inputItem = drug.processInput || drug.pickItem || d.inputItem || 'coke_leaf';
+        d.outputItem = drug.processOutput || d.outputItem || 'coke_powder';
+        d.animation = d.animation || 'drug_process';
+    }
+}
+
 function renderDrugs(a) {
-    const d = a.settings.drugs || {};
+    a.settings.drugs = a.settings.drugs || {};
+    const d = a.settings.drugs;
     const isPick = a.category === 'drugs_plukken';
     const isPackage = a.category === 'drugs_verpakken';
     const title = isPick ? 'Drugs pluk instellingen' : (isPackage ? 'Verpak instellingen' : 'Verwerk instellingen');
     const actionName = isPick ? 'Plukken' : (isPackage ? 'Verpakken' : 'Verwerken');
     const defaultAnim = isPick ? 'drug_pick' : (isPackage ? 'drug_package' : 'drug_process');
+    if (!d.drugType) d.drugType = 'coke';
     if (!d.animation) d.animation = defaultAnim;
+    const drug = currentDrugType(a);
 
     if (isPick) {
         return `
-            <div class="card process-hero">
-                <div>
-                    <h3>${title}</h3>
-                    <p class="muted">Stel hier in wat spelers krijgen bij pluk locaties.</p>
+            <div class="card process-hero drug-hero">
+                <div class="drug-hero-left">
+                    ${drugIconHtml(drug)}
+                    <div>
+                        <h3>${title}</h3>
+                        <div class="field compact"><label>Drug soort</label><select data-drugs="drugType">${drugTypeOptions(d.drugType)}</select></div>
+                    </div>
                 </div>
-                <button class="primary" data-action="apply-drugs-settings">Toepassen op klop/actiepunten</button>
+                <button class="primary" data-action="apply-drugs-settings">Toepassen op actiepunten</button>
             </div>
             <div class="process-flow">
                 <div class="flow-box"><strong>Locatie</strong><span>Speler drukt E</span></div>
@@ -577,10 +627,13 @@ function renderDrugs(a) {
     }
 
     return `
-        <div class="card process-hero">
-            <div>
-                <h3>${title}</h3>
-                <p class="muted">Verwerken en verpakken gebruiken hetzelfde systeem.</p>
+        <div class="card process-hero drug-hero">
+            <div class="drug-hero-left">
+                ${drugIconHtml(drug)}
+                <div>
+                    <h3>${title}</h3>
+                    <div class="field compact"><label>Drug soort</label><select data-drugs="drugType">${drugTypeOptions(d.drugType)}</select></div>
+                </div>
             </div>
             <button class="primary" data-action="apply-drugs-settings">Toepassen op actiepunten</button>
         </div>
@@ -596,7 +649,7 @@ function renderDrugs(a) {
             <div class="grid three">
                 <div class="field"><label>Input item</label><input data-drugs="inputItem" value="${esc(d.inputItem || 'coke_leaf')}"></div>
                 <div class="field"><label>Input aantal</label><input data-drugs="inputAmount" type="number" value="${d.inputAmount || 1}"></div>
-                <div class="field"><label>Output item</label><input data-drugs="outputItem" value="${esc(d.outputItem || (isPackage ? 'coke_bag' : 'coke_poeder'))}"></div>
+                <div class="field"><label>Output item</label><input data-drugs="outputItem" value="${esc(d.outputItem || (isPackage ? 'coke_bag' : 'coke_powder'))}"></div>
                 <div class="field"><label>Output min</label><input data-drugs="outputMin" type="number" value="${d.outputMin || 1}"></div>
                 <div class="field"><label>Output max</label><input data-drugs="outputMax" type="number" value="${d.outputMax || 1}"></div>
                 <label class="switch-row"><span>Input verwijderen</span><input data-drugs="removeRequired" type="checkbox" ${d.removeRequired !== false ? 'checked' : ''}></label>
@@ -620,6 +673,7 @@ function renderDrugs(a) {
 
 function applyDrugsSettingsToSteps() {
     const a = selectedOrDefault();
+    applyDrugTypeDefaults(a);
     const d = a.settings.drugs || {};
     const isPick = a.category === 'drugs_plukken';
     const isPackage = a.category === 'drugs_verpakken';
@@ -647,7 +701,7 @@ function applyDrugsSettingsToSteps() {
             step.required_item = d.inputItem || 'coke_leaf';
             step.required_amount = Number(d.inputAmount || 1);
             step.remove_required = d.removeRequired !== false;
-            step.reward = d.outputItem || (isPackage ? 'coke_bag' : 'coke_poeder');
+            step.reward = d.outputItem || (isPackage ? 'coke_bag' : 'coke_powder');
             step.reward_min = Number(d.outputMin || 1);
             step.reward_max = Number(d.outputMax || d.outputMin || 1);
             step.reward_type = 'item';
@@ -967,6 +1021,7 @@ async function useCurrentVehicleSpawn() {
 
 async function addStep() {
     const a = selectedOrDefault();
+    applyDrugTypeDefaults(a);
     const d = a.settings.drugs || {};
     const res = await post('getCurrentCoords');
     let defaultLabel = `Stap ${(a.action_points || []).length + 1}`;
@@ -998,7 +1053,7 @@ async function addStep() {
         defaultLabel = `${pack ? 'Verpak' : 'Verwerk'} locatie ${(a.action_points || []).length + 1}`;
         actionType = pack ? 'package' : 'process';
         anim = d.animation || (pack ? 'drug_package' : 'drug_process');
-        reward = d.outputItem || (pack ? 'coke_bag' : 'coke_poeder');
+        reward = d.outputItem || (pack ? 'coke_bag' : 'coke_powder');
         rewardMin = Number(d.outputMin || 1);
         rewardMax = Number(d.outputMax || d.outputMin || 1);
         required = d.inputItem || 'coke_leaf';
@@ -1096,6 +1151,11 @@ function updateByTarget(t) {
         if (t.type === 'checkbox') a.settings.drugs[key] = t.checked;
         else if (t.type === 'number') a.settings.drugs[key] = n(value);
         else a.settings.drugs[key] = value;
+        if (key === 'drugType') {
+            applyDrugTypeDefaults(a);
+            renderPanel();
+            return;
+        }
     }
     if (t.dataset.washRoute) {
         a.settings.wash = a.settings.wash || {};

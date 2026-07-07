@@ -1,3 +1,10 @@
+## 1.1.7
+- ox_inventory installatiemap toegevoegd met een `items.lua` gebaseerd op de aangeleverde items.lua.
+- 7 drugssoorten toegevoegd: coke, wiet, meth, XTC, LSD, heroïne en ketamine.
+- Per drugssoort zijn pluk-, verwerk- en verpak-items toegevoegd.
+- Afbeeldingenmap toegevoegd voor ox_inventory en NUI drug-selectie.
+- Drugs UI uitgebreid met een drug-soort selectie die automatisch de juiste input/output items invult.
+
 # Changelog
 
 ## 1.1.5
