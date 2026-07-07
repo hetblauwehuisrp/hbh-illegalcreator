@@ -1,0 +1,42 @@
+CREATE TABLE IF NOT EXISTS `hbh_illegal_activities` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(100) NOT NULL,
+    `category` VARCHAR(80) NOT NULL DEFAULT 'custom',
+    `coords` LONGTEXT NULL,
+    `target_radius` FLOAT NOT NULL DEFAULT 1.8,
+    `max_distance` FLOAT NOT NULL DEFAULT 3.0,
+    `required_items` LONGTEXT NULL,
+    `rewards` LONGTEXT NULL,
+    `action_points` LONGTEXT NULL,
+    `animation` LONGTEXT NULL,
+    `min_police` INT NOT NULL DEFAULT 0,
+    `min_police_grade` INT NOT NULL DEFAULT 0,
+    `cooldown` INT NOT NULL DEFAULT 900,
+    `duration` INT NOT NULL DEFAULT 7500,
+    `police_blip_time` INT NOT NULL DEFAULT 60,
+    `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+    `alert_police` TINYINT(1) NOT NULL DEFAULT 0,
+    `police_blip` TINYINT(1) NOT NULL DEFAULT 0,
+    `progressbar` TINYINT(1) NOT NULL DEFAULT 1,
+    `minigame` TINYINT(1) NOT NULL DEFAULT 0,
+    `minigame_difficulty` VARCHAR(20) NOT NULL DEFAULT 'normal',
+    `blip` TINYINT(1) NOT NULL DEFAULT 0,
+    `marker` TINYINT(1) NOT NULL DEFAULT 1,
+    `settings` LONGTEXT NULL,
+    `created_by` VARCHAR(80) NULL,
+    `updated_by` VARCHAR(80) NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_enabled` (`enabled`),
+    INDEX `idx_category` (`category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `hbh_illegal_wash_upgrades` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `identifier` VARCHAR(80) NOT NULL,
+    `activity_id` INT NOT NULL,
+    `purchased_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_identifier_activity` (`identifier`, `activity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
