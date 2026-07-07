@@ -24,6 +24,12 @@ if not exist ".git" (
 )
 
 for /f "delims=" %%b in ('git rev-parse --abbrev-ref HEAD') do set BRANCH=%%b
+if "%BRANCH%"=="HEAD" (
+    echo [FOUT] Je zit niet op een branch.
+    echo Run eerst: git checkout main
+    pause
+    exit /b 1
+)
 
 echo Branch: %BRANCH%
 echo.
@@ -38,19 +44,18 @@ if errorlevel 1 (
 )
 
 echo Origin controleren...
-git fetch origin
+git fetch origin --prune
 
 echo.
 echo Controleren of GitHub nieuwere bestanden heeft...
 
-for /f %%i in ('git rev-list --count HEAD..origin/%BRANCH% 2^>nul') do set BEHIND=%%i
-
-if "%BEHIND%"=="" set BEHIND=0
+set BEHIND=0
+for /f %%i in ('git rev-list --count HEAD..refs/remotes/origin/%BRANCH% 2^>nul') do set BEHIND=%%i
 
 if not "%BEHIND%"=="0" (
     echo Er staan nieuwe bestanden op GitHub.
     echo Eerst ophalen met rebase...
-    git pull --rebase origin %BRANCH%
+    git pull --rebase origin refs/heads/%BRANCH%
 
     if errorlevel 1 (
         echo.
@@ -68,7 +73,6 @@ echo.
 echo Lokale wijzigingen controleren...
 
 git status --porcelain > "%temp%\hbh_git_status.txt"
-
 for %%A in ("%temp%\hbh_git_status.txt") do set SIZE=%%~zA
 
 if "%SIZE%"=="0" (
@@ -108,7 +112,7 @@ if errorlevel 1 (
 
 echo.
 echo Pushen naar GitHub...
-git push origin %BRANCH%
+git push origin HEAD:refs/heads/%BRANCH%
 
 if errorlevel 1 (
     echo.

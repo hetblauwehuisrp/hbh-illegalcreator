@@ -149,8 +149,7 @@ Config.Waypoint = {
 Config.Categories = {
     { value = 'witwassen', label = 'Witwassen' },
     { value = 'drugs_plukken', label = 'Drugs plukken' },
-    { value = 'drugs_verwerken', label = 'Drugs verwerken' },
-    { value = 'drugs_verpakken', label = 'Drugs verpakken' },
+    { value = 'drugs_verwerken', label = 'Drugs verwerken / verpakken' },
     { value = 'drugs_verkopen', label = 'Drugs verkopen' },
     { value = 'illegale_crafting', label = 'Illegale crafting' },
     { value = 'illegaal_transport', label = 'Illegaal transport' },
