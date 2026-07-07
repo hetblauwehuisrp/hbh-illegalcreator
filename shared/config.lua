@@ -1,6 +1,6 @@
 Config = {}
 
-Config.Version = '1.1.4'
+Config.Version = '1.1.5'
 
 Config.Debug = false
 
@@ -9,10 +9,19 @@ Config.Command = 'illegalcreator'
 
 Config.UpdateChecker = {
     Enabled = true,
+    RequireLatest = true,
+    AutoRestartAfterUpdate = true,
     Github = 'https://github.com/hetblauwehuisrp/hbh-illegalcreator',
+    Owner = 'hetblauwehuisrp',
+    Repo = 'hbh-illegalcreator',
+    Branch = 'main',
     VersionUrl = 'https://raw.githubusercontent.com/hetblauwehuisrp/hbh-illegalcreator/main/version.txt',
     ReleaseApi = 'https://api.github.com/repos/hetblauwehuisrp/hbh-illegalcreator/releases/latest',
-    CheckDelay = 5000
+    CheckDelay = 1000,
+    AllowedExtensions = {
+        '.lua', '.html', '.css', '.js', '.json', '.sql', '.md', '.txt',
+        '.png', '.jpg', '.jpeg', '.webp', '.svg'
+    }
 }
 
 Config.UseAcePermission = false
@@ -76,10 +85,17 @@ Config.Security = {
     MaxRewardAmount = 250000,
     MaxRequiredAmount = 250000,
     MaxActionPoints = 50,
+    MaxPayloadBytes = 45000,
+    MaxAdminPayloadBytes = 250000,
     SessionTimeout = 60 * 45,
     DoorRelockMinDelay = 1000,
     DoorRelockMaxDelay = 1000 * 60 * 30,
-    MaxWashAmount = 10000000
+    MaxWashAmount = 10000000,
+    Exploit = {
+        MaxStrikes = 5,
+        DropPlayer = false,
+        PrintConsole = true
+    }
 }
 
 Config.Target = {

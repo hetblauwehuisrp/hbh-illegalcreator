@@ -4,6 +4,24 @@ local Activities = {}
 local Sessions = {}
 local Cooldowns = {}
 local BusyActivities = {}
+local Started = false
+
+local function isUpdateBlocked()
+    return _G.HBHIllegalCreatorIsUpdateBlocked and _G.HBHIllegalCreatorIsUpdateBlocked() == true
+end
+
+local function updateBlockedMessage()
+    if _G.HBHIllegalCreatorUpdateMessage then return _G.HBHIllegalCreatorUpdateMessage() end
+    return 'Deze resource is geblokkeerd totdat updateall is uitgevoerd.'
+end
+
+local function blockedResponse(title)
+    return { ok = false, title = title or Config.Notify.AdminTitle, message = updateBlockedMessage() }
+end
+
+local function notReadyResponse(title)
+    return { ok = false, title = title or Config.Notify.AdminTitle, message = 'Resource is nog aan het opstarten, probeer het opnieuw.' }
+end
 
 local function identifier(src)
     if src == 0 then return 'console' end
@@ -292,11 +310,15 @@ end
 
 local function validateSession(src, activityId, stepIndex, token)
     local activity = getActivity(activityId)
-    if not activity then return false, nil, _L('invalid_activity') end
+    if not activity then
+        HBH.Security.Flag(src, 'ongeldige activiteit id', activityId)
+        return false, nil, _L('invalid_activity')
+    end
     if not activity.enabled then return false, activity, _L('activity_disabled') end
 
     local session = Sessions[src]
     if not session or session.token ~= token or tonumber(session.activityId) ~= tonumber(activityId) then
+        HBH.Security.Flag(src, 'ongeldige sessie/token', activity.name)
         return false, activity, _L('exploit')
     end
 
@@ -308,17 +330,25 @@ local function validateSession(src, activityId, stepIndex, token)
 
     stepIndex = tonumber(stepIndex)
     if stepIndex ~= session.step then
+        HBH.Security.Flag(src, ('verkeerde stap %s verwacht %s'):format(tostring(stepIndex), tostring(session.step)), activity.name)
+        return false, activity, _L('exploit')
+    end
+
+    if session.completed[stepIndex] then
+        HBH.Security.Flag(src, ('dubbele stap afronden %s'):format(tostring(stepIndex)), activity.name)
         return false, activity, _L('exploit')
     end
 
     local step = getSessionStep(session, activity, stepIndex)
     if not step then
+        HBH.Security.Flag(src, 'stap bestaat niet', activity.name)
         return false, activity, _L('exploit')
     end
 
     local maxDistance = tonumber(step.max_distance or activity.max_distance or Config.Defaults.MaxDistance) or Config.Defaults.MaxDistance
     maxDistance = math.min(maxDistance + 2.0, Config.Security.MaxStepDistance)
     if HBH.Security.Distance(src, stepCoords(step)) > maxDistance then
+        HBH.Security.Flag(src, 'afstand check mislukt', activity.name)
         return false, activity, _L('too_far')
     end
 
@@ -413,10 +443,45 @@ local function startWashRoute(src, activity, payload)
     return { ok = true, token = token, activity = clientActivity, step = 1, message = message, washRoute = true, vehicle = vehicle }
 end
 
+local function sanitizeAdminActivity(data)
+    data = data or {}
+    if HBH.Security.PayloadTooLarge(data, true) then
+        return false, 'Data is te groot. Verwijder onnodige velden/locaties.'
+    end
+
+    data.action_points = data.action_points or {}
+    data.required_items = data.required_items or {}
+    data.rewards = data.rewards or {}
+    data.settings = data.settings or {}
+
+    if #(data.action_points or {}) > Config.Security.MaxActionPoints then
+        return false, ('Maximaal %s actiepunten toegestaan.'):format(Config.Security.MaxActionPoints)
+    end
+
+    return true
+end
+
 CreateThread(function()
     math.randomseed(os.time())
+
+    local waited = 0
+    while _G.HBHIllegalCreatorUpdateIsReady and not _G.HBHIllegalCreatorUpdateIsReady() do
+        Wait(250)
+        waited = waited + 250
+        if waited >= 20000 then
+            print('^3[hbh-illegalcreator] Update check duurde te lang. Resource start door, tenzij later blijkt dat er een update nodig is.^7')
+            break
+        end
+    end
+
+    if isUpdateBlocked() then
+        Started = false
+        return
+    end
+
     HBH.Database.Ensure()
     rebuildCache(HBH.Database.LoadAll())
+    Started = true
     print(('[hbh-illegalcreator] %s activiteiten geladen.'):format(#activityList(true)))
 end)
 
@@ -425,10 +490,13 @@ lib.callback.register('hbh-illegalcreator:server:isAdmin', function(src)
 end)
 
 lib.callback.register('hbh-illegalcreator:server:getActivities', function(src)
+    if isUpdateBlocked() or not Started then return {} end
     return activityList(false)
 end)
 
 lib.callback.register('hbh-illegalcreator:server:adminGetData', function(src)
+    if isUpdateBlocked() then return blockedResponse() end
+    if not Started then return notReadyResponse() end
     if not HBH.Security.IsAdmin(src) then return { ok = false, message = _L('no_permission') } end
     return {
         ok = true,
@@ -446,10 +514,14 @@ lib.callback.register('hbh-illegalcreator:server:adminGetData', function(src)
 end)
 
 lib.callback.register('hbh-illegalcreator:server:adminSaveActivity', function(src, data)
+    if isUpdateBlocked() then return blockedResponse() end
+    if not Started then return notReadyResponse() end
     if not HBH.Security.IsAdmin(src) then return { ok = false, message = _L('no_permission') } end
     if HBH.Security.RateLimit(src, 'adminSave', Config.Security.AdminAntiSpamMs) then return { ok = false, message = 'Rustig aan.' } end
 
     data = data or {}
+    local safe, safeMessage = sanitizeAdminActivity(data)
+    if not safe then return { ok = false, message = safeMessage } end
     if not data.name or tostring(data.name) == '' then return { ok = false, message = 'Naam is verplicht.' } end
 
     local ok, result = pcall(function()
@@ -474,6 +546,8 @@ lib.callback.register('hbh-illegalcreator:server:adminSaveActivity', function(sr
 end)
 
 lib.callback.register('hbh-illegalcreator:server:adminDeleteActivity', function(src, id)
+    if isUpdateBlocked() then return blockedResponse() end
+    if not Started then return notReadyResponse() end
     if not HBH.Security.IsAdmin(src) then return { ok = false, message = _L('no_permission') } end
     if HBH.Security.RateLimit(src, 'adminDelete', Config.Security.AdminAntiSpamMs) then return { ok = false, message = 'Rustig aan.' } end
 
@@ -490,6 +564,12 @@ lib.callback.register('hbh-illegalcreator:server:adminDeleteActivity', function(
 end)
 
 lib.callback.register('hbh-illegalcreator:server:startActivity', function(src, id, payload)
+    if isUpdateBlocked() then return blockedResponse() end
+    if not Started then return notReadyResponse() end
+    if HBH.Security.PayloadTooLarge(payload, false) then
+        HBH.Security.Flag(src, 'payload te groot bij start', 'onbekend')
+        return { ok = false, message = _L('exploit') }
+    end
     if HBH.Security.RateLimit(src, 'start', Config.Security.AntiSpamMs) then return { ok = false, message = 'Rustig aan.' } end
 
     local activity = getActivity(id)
@@ -555,6 +635,12 @@ end)
 
 
 lib.callback.register('hbh-illegalcreator:server:preCheckStep', function(src, activityId, stepIndex, token, payload)
+    if isUpdateBlocked() then return blockedResponse() end
+    if not Started then return notReadyResponse() end
+    if HBH.Security.PayloadTooLarge(payload, false) then
+        HBH.Security.Flag(src, 'payload te groot bij precheck', activityId)
+        return { ok = false, message = _L('exploit') }
+    end
     local valid, activity, stepOrMessage = validateSession(src, activityId, stepIndex, token)
     if not valid then
         return { ok = false, title = activity and activity.name or Config.Notify.AdminTitle, message = stepOrMessage }
@@ -595,6 +681,12 @@ lib.callback.register('hbh-illegalcreator:server:preCheckStep', function(src, ac
 end)
 
 lib.callback.register('hbh-illegalcreator:server:completeStep', function(src, activityId, stepIndex, token, payload)
+    if isUpdateBlocked() then return blockedResponse() end
+    if not Started then return notReadyResponse() end
+    if HBH.Security.PayloadTooLarge(payload, false) then
+        HBH.Security.Flag(src, 'payload te groot bij completeStep', activityId)
+        return { ok = false, message = _L('exploit') }
+    end
     if HBH.Security.RateLimit(src, 'completeStep', Config.Security.AntiSpamMs) then return { ok = false, message = 'Rustig aan.' } end
 
     local valid, activity, stepOrMessage = validateSession(src, activityId, stepIndex, token)
@@ -687,6 +779,10 @@ RegisterNetEvent('hbh-illegalcreator:server:cancelActivity', function(activityId
 end)
 
 RegisterNetEvent('hbh-illegalcreator:server:requestSync', function()
+    if isUpdateBlocked() or not Started then
+        TriggerClientEvent('hbh-illegalcreator:client:syncActivities', source, {})
+        return
+    end
     TriggerClientEvent('hbh-illegalcreator:client:syncActivities', source, Activities)
 end)
 
@@ -701,6 +797,6 @@ end)
 
 AddEventHandler('onResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
-    Wait(1000)
-    broadcastSync()
+    Wait(1500)
+    if not isUpdateBlocked() and Started then broadcastSync() end
 end)

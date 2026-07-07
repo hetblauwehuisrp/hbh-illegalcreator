@@ -18,8 +18,8 @@ server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/security.lua',
     'server/database.lua',
-    'server/main.lua',
-    'server/update.lua'
+    'server/update.lua',
+    'server/main.lua'
 }
 
 ui_page 'html/index.html'

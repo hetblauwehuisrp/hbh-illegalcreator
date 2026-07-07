@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.5
+- Update systeem blokkeert nu het opstarten wanneer GitHub een nieuwere versie heeft.
+- `updateall` downloadt de update nu automatisch via GitHub en stuurt geen downloadlink meer in de console.
+- `updateall` schrijft de bestanden direct naar de resource en restart de resource automatisch na een succesvolle update.
+- Extra server-side anti-hacker checks toegevoegd voor sessie tokens, stapvolgorde, dubbele stappen, payload grootte en afstand.
+- FPS-vriendelijkere client loop toegevoegd: textUI wordt niet meer elke tick opnieuw geopend/gesloten en de loop slaapt langer wanneer dat kan.
+
 ## 1.1.4
 - Actiepunten kunnen nu worden ingeklapt en weer geopend.
 - Drugs plukken heeft een eigen categoriepagina gekregen.

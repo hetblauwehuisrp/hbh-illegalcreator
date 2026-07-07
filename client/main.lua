@@ -8,6 +8,21 @@ local StepBlip = nil
 local Current = nil
 local DoorObjects = {}
 local RouteVehicle = nil
+local TextUiVisible = false
+
+local function showStepText(text)
+    if not TextUiVisible then
+        lib.showTextUI(text)
+        TextUiVisible = true
+    end
+end
+
+local function hideStepText()
+    if TextUiVisible then
+        lib.hideTextUI()
+        TextUiVisible = false
+    end
+end
 
 local function dbg(...)
     if Config.Debug then
@@ -357,6 +372,7 @@ local function attemptCurrentStep()
 
     if res.done then
         removeStepBlip()
+        hideStepText()
         Current = nil
     else
         Current.step = res.nextStep
@@ -396,6 +412,7 @@ local function startActivity(id)
         activity = res.activity,
         step = res.step or 1
     }
+    hideStepText()
 
     notify(res.activity.name, res.message or _L('activity_started'), 'success')
     nextStep()
@@ -583,36 +600,46 @@ CreateThread(function()
     while true do
         local sleep = 1000
         if Current then
+            sleep = 600
             local step = Current.activity.action_points[Current.step]
             if step and step.coords then
                 local ped = PlayerPedId()
                 local p = GetEntityCoords(ped)
                 local c = toVec3(step.coords)
                 local dist = #(p - c)
-                local drawDistance = Config.Marker.DrawDistance
+                local drawDistance = tonumber(Config.Marker.DrawDistance or 25.0) or 25.0
+                local interactDistance = tonumber(step.interact_distance or Config.Marker.InteractDistance) or Config.Marker.InteractDistance
+                local markerEnabled = Current.activity.marker ~= false and step.marker ~= false
+
                 if dist < drawDistance then
-                    sleep = 0
-                    if Current.activity.marker ~= false and step.marker ~= false then
+                    sleep = markerEnabled and 0 or 250
+                    if markerEnabled then
                         DrawMarker(Config.Marker.Type, c.x, c.y, c.z + 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Marker.Size.x, Config.Marker.Size.y, Config.Marker.Size.z, Config.Marker.Color.r, Config.Marker.Color.g, Config.Marker.Color.b, Config.Marker.Color.a, false, true, 2, false, nil, nil, false)
                     end
-                    if dist < (tonumber(step.interact_distance or Config.Marker.InteractDistance) or Config.Marker.InteractDistance) then
-                        lib.showTextUI(('[E] %s'):format(step.label or 'Actie uitvoeren'))
+
+                    if dist < interactDistance then
+                        sleep = 0
+                        showStepText(('[E] %s'):format(step.label or 'Actie uitvoeren'))
                         if IsControlJustReleased(0, 38) then
-                            lib.hideTextUI()
+                            hideStepText()
                             attemptCurrentStep()
                         end
                     else
-                        lib.hideTextUI()
+                        hideStepText()
                     end
                 else
-                    lib.hideTextUI()
+                    hideStepText()
                     if dist > (tonumber(step.cancel_distance or 120.0) or 120.0) then
                         TriggerServerEvent('hbh-illegalcreator:server:cancelActivity', Current.activity.id, Current.token, _L('too_far'))
                         removeStepBlip()
                         Current = nil
                     end
                 end
+            else
+                hideStepText()
             end
+        else
+            hideStepText()
         end
         Wait(sleep)
     end

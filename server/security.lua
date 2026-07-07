@@ -3,6 +3,7 @@ HBH.Security = {}
 
 local ESX = exports['es_extended']:getSharedObject()
 local rateLimits = {}
+local exploitStrikes = {}
 
 local function dbg(...)
     if Config.Debug then
@@ -53,6 +54,39 @@ function HBH.Security.RateLimit(src, key, ms)
     end
     rateLimits[src][key] = now
     return false
+end
+
+function HBH.Security.Flag(src, reason, activityName)
+    if src == 0 then return end
+
+    exploitStrikes[src] = (exploitStrikes[src] or 0) + 1
+    local strikes = exploitStrikes[src]
+    local name = GetPlayerName(src) or ('ID %s'):format(src)
+    local msg = ('[hbh-illegalcreator] Anti-hacker: %s (%s) | reden: %s | activiteit: %s | strikes: %s'):format(name, src, tostring(reason or 'onbekend'), tostring(activityName or 'onbekend'), strikes)
+
+    if not Config.Security.Exploit or Config.Security.Exploit.PrintConsole ~= false then
+        print(('^1%s^7'):format(msg))
+    end
+
+    local maxStrikes = tonumber(Config.Security.Exploit and Config.Security.Exploit.MaxStrikes or 5) or 5
+    if Config.Security.Exploit and Config.Security.Exploit.DropPlayer == true and strikes >= maxStrikes then
+        DropPlayer(src, 'HBH Anti-cheat: ongeldige illegal activity actie.')
+    end
+end
+
+function HBH.Security.PayloadTooLarge(payload, admin)
+    if payload == nil then return false end
+    local ok, encoded = pcall(json.encode, payload)
+    if not ok or not encoded then return true end
+    local max = admin and Config.Security.MaxAdminPayloadBytes or Config.Security.MaxPayloadBytes
+    max = tonumber(max or 45000) or 45000
+    return #encoded > max
+end
+
+function HBH.Security.SafeItemName(name)
+    name = tostring(name or '')
+    if name == '' then return false end
+    return name:match('^[%w_%-]+$') ~= nil
 end
 
 function HBH.Security.Distance(src, coords)
@@ -168,6 +202,9 @@ function HBH.Security.HasRequirements(src, requirements)
     for _, raw in ipairs(requirements or {}) do
         local req = normalizeEntry(raw)
         if req.name ~= '' then
+            if not HBH.Security.SafeItemName(req.name) then
+                return false, 'Ongeldig item/account ingesteld.'
+            end
             local amount = math.min(req.amount, Config.Security.MaxRequiredAmount)
             if req.type == 'account' then
                 local has = getAccountAmount(xPlayer, req.name)
@@ -214,21 +251,25 @@ function HBH.Security.GiveRewards(src, rewards)
     for _, raw in ipairs(rewards or {}) do
         local reward = normalizeEntry(raw)
         if reward.name ~= '' then
-            local chance = math.max(0, math.min(100, reward.chance or 100))
-            local rollOk = reward.guaranteed or math.random(1, 100) <= chance
-            if rollOk then
-                local min = math.max(1, math.floor(reward.min or reward.amount or 1))
-                local max = math.max(min, math.floor(reward.max or reward.amount or min))
-                local amount = math.random(min, max)
-                amount = math.min(amount, Config.Security.MaxRewardAmount)
+            if not HBH.Security.SafeItemName(reward.name) then
+                if Config.Debug then HBH.Security.Debug(('Ongeldige reward overgeslagen: %s'):format(tostring(reward.name))) end
+            else
+                local chance = math.max(0, math.min(100, reward.chance or 100))
+                local rollOk = reward.guaranteed or math.random(1, 100) <= chance
+                if rollOk then
+                    local min = math.max(1, math.floor(reward.min or reward.amount or 1))
+                    local max = math.max(min, math.floor(reward.max or reward.amount or min))
+                    local amount = math.random(min, max)
+                    amount = math.min(amount, Config.Security.MaxRewardAmount)
 
-                if reward.type == 'account' then
-                    addAccount(xPlayer, reward.name, amount)
-                else
-                    exports.ox_inventory:AddItem(src, reward.name, amount)
+                    if reward.type == 'account' then
+                        addAccount(xPlayer, reward.name, amount)
+                    else
+                        exports.ox_inventory:AddItem(src, reward.name, amount)
+                    end
+
+                    given[#given + 1] = { name = reward.name, label = reward.label or reward.name, amount = amount, type = reward.type }
                 end
-
-                given[#given + 1] = { name = reward.name, label = reward.label or reward.name, amount = amount, type = reward.type }
             end
         end
     end
@@ -278,6 +319,7 @@ end
 
 AddEventHandler('playerDropped', function()
     rateLimits[source] = nil
+    exploitStrikes[source] = nil
 end)
 
 
